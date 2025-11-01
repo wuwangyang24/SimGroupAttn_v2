@@ -1,12 +1,12 @@
 import torch
 import lightning as pl
 from torch.optim.lr_scheduler import SequentialLR, LinearLR, CosineAnnealingLR
+from typing import Any, Optional, Sequence, Dict
 
 
 class LightningModel(pl.LightningModule):
-    """Lightning module for training with optimized configuration and monitoring."""
 
-    def __init__(self, ppl, train_config):
+    def __init__(self, ppl: Optional[Sequence[Any]], train_config: Any) -> None:
         super().__init__()
         self.save_hyperparameters(ignore=['ppl'])
         self.ppl = ppl
@@ -28,23 +28,33 @@ class LightningModel(pl.LightningModule):
         self.train_loss = 0.0
         self.val_loss = 0.0
         
-    def training_step(self, batch, batch_idx):
-        loss, _, _, _ = self.model(batch)
-        self.log("train_loss", loss.detach().cpu().item(), on_step=True, on_epoch=True, prog_bar=True, logger=True)
-        current_lr = self.trainer.optimizers[0].param_groups[0]['lr']
-        self.log("lr", current_lr, on_step=False, on_epoch=True, prog_bar=True, logger=True)
+    def training_step(self, batch: Any, batch_idx: int) -> Any:
+        loss, *rest = self.model(batch)
+        # Log the tensor directly — Lightning will handle reduction/device transfer efficiently.
+        self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        # Read current LR from trainer's optimizer (cheap) and log as scalar
+        try:
+            current_lr = float(self.trainer.optimizers[0].param_groups[0]["lr"])
+            self.log("lr", current_lr, on_step=False, on_epoch=True, prog_bar=True, logger=True)
+        except Exception:
+            # If trainer/optimizer isn't available yet, skip logging the lr for this step
+            pass
         return loss
 
-    def validation_step(self, batch, batch_idx):
-        """Validation step with optimized image logging."""
-        loss, recons, x, _ = self.model(batch)
-        
-        # Log validation loss
-        self.log("val_loss", loss.detach().cpu().item(), 
-                on_epoch=True, prog_bar=True, logger=True, sync_dist=True)
+    def validation_step(self, batch: Any, batch_idx: int) -> Dict[str, Any]:
+        loss, *rest = self.ppl(batch)
+        self.log(
+            "val_loss",
+            loss,
+            on_epoch=True,
+            prog_bar=True,
+            logger=True,
+            sync_dist=True,
+        )
+        return {"val_loss": loss}
 
 
-    def configure_optimizers(self):
+    def configure_optimizers(self) -> Dict[str, Any]:
         optimizer = torch.optim.AdamW(
             self.model.parameters(),
             betas=(self.beta1, self.beta2),
@@ -56,10 +66,12 @@ class LightningModel(pl.LightningModule):
             start_factor=self.start_factor,
             total_iters=self.warmup_epochs
         )
+        # Ensure T_max is positive to avoid scheduler errors when warmup == max_epochs
+        t_max = max(1, int(self.max_epochs - self.warmup_epochs))
         cosine_scheduler = CosineAnnealingLR(
             optimizer,
-            T_max=self.max_epochs - self.warmup_epochs,
-            eta_min=self.eta_min
+            T_max=t_max,
+            eta_min=self.eta_min,
         )
         scheduler = SequentialLR(
             optimizer,

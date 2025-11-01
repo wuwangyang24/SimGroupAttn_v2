@@ -57,11 +57,8 @@ def load_ppl(ppl_config: Any) -> Any:
             mlp_ratio=ppl_config.mlp_ratio,
         )
         # Instantiate model from config (no pretrained weights by default)
-        ppl = IJepaModel(cfg)
-        # Load processor from a pretrained identifier. Let underlying
-        # transformers raise an error if the id is invalid / missing.
-        processor = AutoProcessor.from_pretrained(ppl_config.id)
-        return ppl, processor
+        model = IJepaModel(cfg)
+        return model
 
     # MAE: encoder/decoder config
     elif name == "mae":
@@ -101,8 +98,8 @@ def load_ppl(ppl_config: Any) -> Any:
             decoder_hidden_size=ppl_config.dec_D,
             mask_ratio=ppl_config.mlp_ratio,
         )
-        ppl = MaeModel(cfg)
-        return ppl
+        model = MaeModel(cfg)
+        return model
     elif name == "simgroupattn":
         raise NotImplementedError(
             "'simgroupattn' backend is not implemented in load_ppl(). "
