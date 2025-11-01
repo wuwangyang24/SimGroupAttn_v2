@@ -1,0 +1,44 @@
+Data:
+    train_dir: ''
+    val_dir: ''
+    test_dir: ''
+    image_size: [224, 224]
+
+Pipeline:
+    name: mae
+    id:
+
+Model:
+    type: mae
+    backbone: 'vit_base_patch16'
+    patch_size: 16
+    in_chans: 3
+    embed_dim: 768
+    encoder_depth: 12
+    encoder_num_heads: 12
+    decoder_embed_dim: 512
+    decoder_depth: 8
+    decoder_num_heads: 16
+    mask_ratio: 0.75
+
+Training_Dynamics:
+    batch_size: 64
+    epochs: 1600
+    val_every_n_epoch: 50
+    accumulate_grad_batches: 1
+    optimizer:
+        name: 'adamw'
+        lr: 0.0003
+        warmup_epochs: 10
+        start_factor: 0.1
+        beta1: 0.9
+        beta2: 0.999
+        weight_decay: 0.05
+        eta_min: 1e-06
+
+Logging:
+    project: 'MAE_Experiment'
+    entity: 'wwy'
+    checkpoint_path: 'CHECKPOINTS/mae'
+    save_every_n_epoch: 50
+    num_samples: 8
