@@ -29,7 +29,7 @@ class LightningModel(pl.LightningModule):
         self.val_loss = 0.0
         
     def training_step(self, batch: Any, batch_idx: int) -> Any:
-        loss, *rest = self.model(batch)
+        loss = self.ppl(**batch).loss
         # Log the tensor directly — Lightning will handle reduction/device transfer efficiently.
         self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         # Read current LR from trainer's optimizer (cheap) and log as scalar
@@ -42,7 +42,7 @@ class LightningModel(pl.LightningModule):
         return loss
 
     def validation_step(self, batch: Any, batch_idx: int) -> Dict[str, Any]:
-        loss, *rest = self.ppl(batch)
+        loss = self.ppl(**batch).loss
         self.log(
             "val_loss",
             loss,
