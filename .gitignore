@@ -45,3 +45,27 @@ env.bak/
 
 # JetBrains
 .idea/
+
+# Image files
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.webp
+*.bmp
+*.tif
+*.tiff
+*.ico
+
+# Model checkpoints and large model files
+*.ckpt
+*.ckpt.*
+*.ckpt.index
+*.pth
+*.pt
+*.bin
+checkpoints/
+checkpoint-*
+
+
