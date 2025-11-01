@@ -34,7 +34,6 @@ def load_ppl(ppl_config: Any) -> Any:
         try:
             import importlib
             transformers = importlib.import_module("transformers")
-            AutoProcessor = getattr(transformers, "AutoProcessor")
             IJepaConfig = getattr(transformers, "IJepaConfig")
             IJepaModel = getattr(transformers, "IJepaModel")
         except Exception as e:
@@ -57,15 +56,15 @@ def load_ppl(ppl_config: Any) -> Any:
             mlp_ratio=ppl_config.mlp_ratio,
         )
         # Instantiate model from config (no pretrained weights by default)
-        model = IJepaModel(cfg)
-        return model
+        ppl = IJepaModel(cfg)
+        return ppl
 
     # MAE: encoder/decoder config
     elif name == "mae":
         try:
             transformers = importlib.import_module("transformers")
             MaeConfig = getattr(transformers, "MaeConfig")
-            MaeModel = getattr(transformers, "MaeModel")
+            MAEForPreTraining = getattr(transformers, "MAEForPreTraining")
         except Exception as e:
             raise ImportError(
                 "The 'transformers' package is required for the 'mae' backend. "
@@ -98,8 +97,8 @@ def load_ppl(ppl_config: Any) -> Any:
             decoder_hidden_size=ppl_config.dec_D,
             mask_ratio=ppl_config.mlp_ratio,
         )
-        model = MaeModel(cfg)
-        return model
+        ppl = MAEForPreTraining(cfg)
+        return ppl
     elif name == "simgroupattn":
         raise NotImplementedError(
             "'simgroupattn' backend is not implemented in load_ppl(). "

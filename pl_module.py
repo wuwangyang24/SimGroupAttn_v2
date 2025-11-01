@@ -10,9 +10,9 @@ class LightningModel(pl.LightningModule):
         super().__init__()
         self.save_hyperparameters(ignore=['ppl'])
         self.ppl = ppl
-        
         # Extract optimizer configuration
         optimizer_config = train_config.Training_Dynamics.optimizer
+        self.max_epochs = train_config.Training_Dynamics.epochs
         self.lr = optimizer_config.lr
         self.beta1 = optimizer_config.beta1
         self.beta2 = optimizer_config.beta2
@@ -21,16 +21,8 @@ class LightningModel(pl.LightningModule):
         self.warmup_epochs = optimizer_config.warmup_epochs
         self.start_factor = optimizer_config.start_factor
         
-        # Training configuration
-        self.max_epochs = train_config.Training_Dynamics.epochs
-        
-        # Initialize metrics
-        self.train_loss = 0.0
-        self.val_loss = 0.0
-        
     def training_step(self, batch: Any, batch_idx: int) -> Any:
         loss = self.ppl(**batch).loss
-        # Log the tensor directly — Lightning will handle reduction/device transfer efficiently.
         self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         # Read current LR from trainer's optimizer (cheap) and log as scalar
         try:
