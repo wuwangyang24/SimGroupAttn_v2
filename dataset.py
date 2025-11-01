@@ -7,7 +7,7 @@ import torchvision.transforms as transforms
 
 
 class ImageDataset(Dataset):
-
+    """Dataset for loading images from a directory."""
     def __init__(
         self,
         image_dir: str,
