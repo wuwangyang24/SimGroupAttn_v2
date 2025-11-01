@@ -6,10 +6,6 @@ Data:
 
 Pipeline:
     name: mae
-    id:
-
-Model:
-    type: mae
     backbone: 'vit_base_patch16'
     patch_size: 16
     in_chans: 3
