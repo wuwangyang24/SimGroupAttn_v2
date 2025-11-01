@@ -1,14 +1,8 @@
-import os
-import re
-from typing import Optional, Dict, Any, List, Union
+from typing import Optional
 from dataclasses import dataclass
 import wandb
-import torch
-from torch import nn
-from torch.utils.data import DataLoader
 import lightning as pl
 from lightning.pytorch.loggers import WandbLogger
-from lightning.pytorch.callbacks import Callback
 from omegaconf import DictConfig
 from pl_module import LightningModel
 from pipeline import load_ppl

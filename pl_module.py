@@ -1,8 +1,5 @@
 import torch
-import wandb
-import random
 import lightning as pl
-import torchvision.utils as vutils
 from torch.optim.lr_scheduler import SequentialLR, LinearLR, CosineAnnealingLR
 
 
@@ -45,35 +42,7 @@ class LightningModel(pl.LightningModule):
         # Log validation loss
         self.log("val_loss", loss.detach().cpu().item(), 
                 on_epoch=True, prog_bar=True, logger=True, sync_dist=True)
-        
-        # Log sample images only on the first process in distributed training
-        if self.global_rank == 0 and batch_idx == 0:  # Log only first batch
-            N = min(recons.shape[0], 10)  # Limit to max 10 samples
-            indices = random.sample(range(recons.shape[0]), N)
-            
-            # Process images in batches
-            sample_images = []
-            for idx in indices:
-                original_img = x[idx]
-                recon_img = torch.clamp(recons[idx], min=0., max=1.)
-                sample_images.extend([original_img, recon_img])
-            
-            # Create and log image grid
-            with torch.no_grad():
-                grid_img = vutils.make_grid(
-                    sample_images, 
-                    nrow=2,
-                    normalize=True,
-                    scale_each=True
-                )
-                
-            self.logger.experiment.log({
-                "val/recon_images": wandb.Image(
-                    grid_img,
-                    caption=f"Original | Recon Grid (Epoch {self.current_epoch})"
-                ),
-                "global_step": self.global_step
-            })
+
 
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(

@@ -1,5 +1,5 @@
 
-from typing import Any, Optional, Tuple
+from typing import Any
 
 
 def load_ppl(ppl_config: Any) -> Any:
