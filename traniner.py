@@ -1,11 +1,10 @@
 import os
 import re
 import wandb
-import lightning as pl
-from glob import glob
 import torch
 from torch import nn
 from lightning.pytorch.loggers import WandbLogger
+from pl_module import LightningModel
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -14,7 +13,6 @@ class Trainer():
     def __init__(self, config):
         self.config = config
         self.name = f"ViT-{config.Model_Configs.depth}-H{config.Model_Configs.num_heads}-HDim{config.Model_Configs.dim_head}-D{config.Model_Configs.embed_dim}-S{config.Data.img_size}-Grouped{config.Data.stratified}-M{config.Similarity_Configs.n_edges_self_image}-N{config.Similarity_Configs.n_edges_other_images}-MaskT{config.Training_Dynamics.mask.mask_strategy}-MaskR{config.Training_Dynamics.mask.mask_ratio}-B{config.Training_Dynamics.batch_size}-AccuG{config.Training_Dynamics.accumulate_grad_batches}-LR{config.Training_Dynamics.optimizer.lr}-CLS{config.Model_Configs.cls_token}-AttnM{config.Model_Configs.masked_attn}-ConnM{config.Similarity_Configs.conn_with_mask}"
-        # setting up wandb logging
         self.wandb_logger = WandbLogger(log_model=True,
                                         entity=config.Logging.entity,
                                         project=config.Logging.project,
@@ -22,9 +20,9 @@ class Trainer():
                                         resume='allow'
                                        )
 
-        model = self.create_model()
-        self.wandb_logger.watch(model, log="gradients", log_freq=1000)
-        self.pl_module = LightningModel(model, self.config)
+        self.ppl = self.load_ppl(config.Pipeline)
+        self.pl_module = LightningModel(self.ppl, config.Train)
+        self.wandb_logger.watch(self.ppl, log="gradients", log_freq=1000)
         checkpoint_dirpath = os.path.join(self.config.Logging.checkpoint_path, self.name)
         checkpoint_callback = pl.pytorch.callbacks.ModelCheckpoint(
                                                                    dirpath=checkpoint_dirpath,
@@ -32,10 +30,8 @@ class Trainer():
                                                                    every_n_epochs=self.config.Logging.save_every_n_epoch,
                                                                    save_top_k=1,
                                                                   )
-        devices = torch.cuda.device_count()
         self.pl_trainer = pl.Trainer(accelerator="gpu",
                                      strategy='ddp_find_unused_parameters_true',
-                                     devices=self.config.device,
                                      accumulate_grad_batches=self.config.Training_Dynamics.accumulate_grad_batches,
                                      max_epochs=self.config.Training_Dynamics.epochs,
                                      gradient_clip_val=1.0,
@@ -52,53 +48,37 @@ class Trainer():
             print("No checkpoint available")
             self.resume_checkpoint = 'None'
 
-    def create_model(self):
-        print('Initializing model ...')
-        # create encoder
-        encoder = VisionTransformerSimMIM(
-            self.config.Data.img_size,
-            self.config.Data.patch_size,
-            self.config.Data.channels,
-            self.config.Model_Configs.dim_head,
-            self.config.Model_Configs.embed_dim,
-            self.config.Model_Configs.depth,
-            self.config.Model_Configs.num_heads,
-            self.config.Model_Configs.mlp_ratio,
-            self.config.Model_Configs.drop_rate,
-            self.config.Model_Configs.drop_path_rate,
-            self.config.Model_Configs.cls_token,
-            self.config.Model_Configs.use_abs_pos_emb,
-            self.config.Similarity_Configs.post_sim
-        )
-        # create decoder
-        decoder = nn.Sequential(
-            nn.Conv2d(
-                in_channels=self.config.Model_Configs.embed_dim,
-                out_channels=self.config.Data.encoder_stride ** 2 * 3,
-                kernel_size=1
-            ),
-            nn.PixelShuffle(self.config.Data.encoder_stride)
-        )
-        # create simmim model
-        model = SimMIM(encoder,
-                       decoder,
-                       self.config.Training_Dynamics.batch_size,
-                       self.config.Data.img_size,
-                       self.config.Data.num_patches,
-                       self.config.Data.patch_size,
-                       self.config.Data.channels,
-                       self.config.Model_Configs.embed_dim,
-                       self.config.Training_Dynamics.mask.mask_strategy,
-                       self.config.Training_Dynamics.mask.mask_ratio,
-                       self.config.Similarity_Configs.n_edges_self_image,
-                       self.config.Similarity_Configs.n_edges_other_images,
-                       self.config.Similarity_Configs.post_sim,
-                       self.config.Similarity_Configs.conn_with_mask,
-                       self.config.Model_Configs.masked_attn,
-                       self.config.Model_Configs.cls_token
-                      )
-        return model
-
+    def load_ppl(self, ppl_config):
+        if ppl_config.name == 'ijepa':
+            from transformers import AutoProcessor, IJepaConfig, IJepaModel
+            cfg = IJepaConfig(
+                image_size=ppl_config.img_size,
+                patch_size=ppl_config.patch_size,
+                num_channels=ppl_config.chans,
+                hidden_size=ppl_config.D,
+                num_hidden_layers=ppl_config.layers,
+                num_attention_heads=ppl_config.heads,
+                mlp_ratio=ppl_config.mlp_ratio,
+            )
+            ppl = IJepaModel(cfg)
+            processor = AutoProcessor.from_pretrained(ppl_config.id)
+            return ppl, processor
+        elif ppl_config.name == 'mae':
+            from transformers import MaeConfig, MaeModel
+            cfg = MaeConfig(
+                image_size=ppl_config.img_size,
+                patch_size=ppl_config.patch_size,
+                num_channels=ppl_config.chans,
+                encoder_layers=ppl_config.enc_layers,
+                encoder_attention_heads=ppl_config.enc_heads,
+                encoder_hidden_size=ppl_config.enc_D,
+                decoder_layers=ppl_config.dec_layers,
+                decoder_attention_heads=ppl_config.dec_heads,
+                decoder_hidden_size=ppl_config.dec_D,
+                mask_ratio=ppl_config.mlp_ratio,
+            )
+            ppl = MaeModel(cfg)
+            return ppl
 
     def train(self):
         # Create dataloaders

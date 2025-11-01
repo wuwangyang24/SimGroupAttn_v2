@@ -1,3 +1,5 @@
+torch
+torchvision
 opencv-python-headless
 plotly
 einops
@@ -5,3 +7,4 @@ timm
 wandb
 omegaconf
 lightning
+transformers

@@ -8,22 +8,19 @@ from torch.optim.lr_scheduler import SequentialLR, LinearLR, CosineAnnealingLR
 
 class LightningModel(pl.LightningModule):
 
-    def __init__(self, model, config):
+    def __init__(self, ppl, train_config):
         super().__init__()
-        self.model = model
-        self.lr = config.Training_Dynamics.optimizer.lr
-        self.beta1 = config.Training_Dynamics.optimizer.beta1
-        self.beta2 = config.Training_Dynamics.optimizer.beta2
-        self.weight_decay = config.Training_Dynamics.optimizer.weight_decay
-        self.eta_min = config.Training_Dynamics.optimizer.eta_min
-        self.max_epochs = config.Training_Dynamics.epochs
-        self.warmup_epochs = config.Training_Dynamics.optimizer.warmup_epochs
-        self.start_factor = config.Training_Dynamics.optimizer.start_factor
-        self.num_samples = config.Logging.num_samples
-        # self.sample_images = []
-
+        self.ppl = ppl
+        self.lr = train_config.Training_Dynamics.optimizer.lr
+        self.beta1 = train_config.Training_Dynamics.optimizer.beta1
+        self.beta2 = train_config.Training_Dynamics.optimizer.beta2
+        self.weight_decay = train_config.Training_Dynamics.optimizer.weight_decay
+        self.eta_min = train_config.Training_Dynamics.optimizer.eta_min
+        self.max_epochs = train_config.Training_Dynamics.epochs
+        self.warmup_epochs = train_config.Training_Dynamics.optimizer.warmup_epochs
+        self.start_factor = train_config.Training_Dynamics.optimizer.start_factor
+        
     def training_step(self, batch, batch_idx):
-        # x = batch
         loss, _, _, _ = self.model(batch)
         self.log("train_loss", loss.detach().cpu().item(), on_step=True, on_epoch=True, prog_bar=True, logger=True)
         current_lr = self.trainer.optimizers[0].param_groups[0]['lr']
