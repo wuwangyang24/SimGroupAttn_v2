@@ -3,8 +3,10 @@ import re
 import wandb
 import torch
 from torch import nn
+import lightning as pl
 from lightning.pytorch.loggers import WandbLogger
 from pl_module import LightningModel
+from pipeline import load_ppl
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -20,7 +22,7 @@ class Trainer():
                                         resume='allow'
                                        )
 
-        self.ppl = self.load_ppl(config.Pipeline)
+        self.ppl = load_ppl(config.Pipeline)
         self.pl_module = LightningModel(self.ppl, config.Train)
         self.wandb_logger.watch(self.ppl, log="gradients", log_freq=1000)
         checkpoint_dirpath = os.path.join(self.config.Logging.checkpoint_path, self.name)
@@ -48,38 +50,7 @@ class Trainer():
             print("No checkpoint available")
             self.resume_checkpoint = 'None'
 
-    def load_ppl(self, ppl_config):
-        if ppl_config.name == 'ijepa':
-            from transformers import AutoProcessor, IJepaConfig, IJepaModel
-            cfg = IJepaConfig(
-                image_size=ppl_config.img_size,
-                patch_size=ppl_config.patch_size,
-                num_channels=ppl_config.chans,
-                hidden_size=ppl_config.D,
-                num_hidden_layers=ppl_config.layers,
-                num_attention_heads=ppl_config.heads,
-                mlp_ratio=ppl_config.mlp_ratio,
-            )
-            ppl = IJepaModel(cfg)
-            processor = AutoProcessor.from_pretrained(ppl_config.id)
-            return ppl, processor
-        elif ppl_config.name == 'mae':
-            from transformers import MaeConfig, MaeModel
-            cfg = MaeConfig(
-                image_size=ppl_config.img_size,
-                patch_size=ppl_config.patch_size,
-                num_channels=ppl_config.chans,
-                encoder_layers=ppl_config.enc_layers,
-                encoder_attention_heads=ppl_config.enc_heads,
-                encoder_hidden_size=ppl_config.enc_D,
-                decoder_layers=ppl_config.dec_layers,
-                decoder_attention_heads=ppl_config.dec_heads,
-                decoder_hidden_size=ppl_config.dec_D,
-                mask_ratio=ppl_config.mlp_ratio,
-            )
-            ppl = MaeModel(cfg)
-            return ppl
-
+    
     def train(self):
         # Create dataloaders
         print("Creating dataloader...")
