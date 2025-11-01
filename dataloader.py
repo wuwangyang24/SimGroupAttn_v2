@@ -4,7 +4,7 @@ from torch.utils.data import DataLoader, Dataset
 from dataset import ImageDataset
 from torchvision import transforms as T
 
-def default_transforms(image_size: Tuple[int, int]):
+def default_transforms(image_size: Tuple[int, int]) -> T.Compose:
     """Return a simple default transform: resize and convert to tensor."""
     return T.Compose([
         T.Resize(image_size),
