@@ -1,7 +1,6 @@
 import os
-from typing import Optional, Callable, Sequence, List, Tuple
+from typing import Optional, Callable, Sequence
 from PIL import Image
-import torch
 from torch import Tensor
 from torch.utils.data import Dataset
 import torchvision.transforms as transforms
