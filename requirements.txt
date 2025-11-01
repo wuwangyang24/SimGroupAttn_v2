@@ -1,10 +1,23 @@
+# Core Deep Learning Libraries
 torch
 torchvision
-opencv-python-headless
-plotly
-einops
+lightning
+
+# Model & Training Dependencies
+transformers
 timm
+einops
+
+# Configuration & Logging
 wandb
 omegaconf
-lightning
-transformers
+
+# Image Processing
+opencv-python-headless
+
+# Development Tools
+pytest
+black
+isort
+mypy
+pre-commit
