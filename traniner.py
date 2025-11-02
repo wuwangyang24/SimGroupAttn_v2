@@ -7,13 +7,11 @@ from lightning.pytorch.loggers import WandbLogger
 from omegaconf import DictConfig
 from pl_module import LightningModel
 from pipeline import load_ppl
-# Suppress warnings globally
 warnings.filterwarnings("ignore")
 
 
 class Trainer:
     """High-level trainer for Vision Transformer / Data2Vec / JEPA models using Lightning."""
-
     def __init__(self, config: DictConfig) -> None:
         self.config = config
         self.name = self._generate_experiment_name(config)
