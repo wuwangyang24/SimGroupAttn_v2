@@ -2,6 +2,7 @@
 torch
 torchvision
 lightning
+transformers
 
 # Model & Training Dependencies
 transformers

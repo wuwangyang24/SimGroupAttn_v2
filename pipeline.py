@@ -70,9 +70,6 @@ def load_ppl(ppl_config: Any) -> Any:
     
     lname = name.lower()
     
-    if lname == "simgroupattn":
-        raise NotImplementedError("'simgroupattn' backend is not implemented in load_ppl()")
-    
     if lname not in _transformer_classes:
         raise ValueError(f"Unknown model name: {name}")
     
