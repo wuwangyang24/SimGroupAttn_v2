@@ -108,17 +108,4 @@ class ImageDataModule(pl.LightningDataModule):
             drop_last=False,
             collate_fn=self.collate_fn
         )
-    
-    def test_dataloader(self) -> Optional[DataLoader]:
-        if self.test_dataset is None:
-            return None
-        return create_dataloader(
-            self.test_dataset,
-            batch_size=self.test_batch_size,
-            shuffle=False,
-            num_workers=self.num_workers,
-            pin_memory=self.pin_memory,
-            drop_last=False,
-            collate_fn=self.collate_fn
-        )
 
