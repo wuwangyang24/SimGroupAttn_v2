@@ -6,6 +6,7 @@ env/
 venvs/
 virtualenv/
 simgroupattn/
+wandb/
 
 # macOS system files
 .DS_Store

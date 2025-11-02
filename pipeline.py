@@ -11,7 +11,7 @@ _transformer_classes = {
 
 # Required fields per model
 _required_fields = {
-    "ijepa": ["img_size","patch_size","chans","D","layers","heads","mlp_ratio","id"],
+    "ijepa": ["img_size","patch_size","in_chans","embed_dim","layers","heads","mlp_ratio"],
     "mae": ["img_size","patch_size","chans","enc_layers","enc_heads","enc_D",
             "dec_layers","dec_heads","dec_D","mlp_ratio"],
     "simmim": ["img_size","patch_size","chans","D","layers","heads","inter_D","mlp_ratio"],
@@ -23,8 +23,8 @@ _param_map = {
     "ijepa": {
         "image_size": "img_size",
         "patch_size": "patch_size",
-        "num_channels": "chans",
-        "hidden_size": "D",
+        "num_channels": "in_chans",
+        "hidden_size": "embed_dim",
         "num_hidden_layers": "layers",
         "num_attention_heads": "heads",
         "mlp_ratio": "mlp_ratio"

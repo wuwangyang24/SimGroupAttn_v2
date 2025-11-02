@@ -12,7 +12,11 @@ Pipeline:
     backbone: 'vit_base_patch16'
     patch_size: 16
     in_chans: 3
+    img_size: 224
     embed_dim: 768
+    layers: 12
+    heads: 12
+    mlp_ratio: 4.0
     context_size: 8
     target_size: 4
     projector_dim: 512
@@ -36,7 +40,7 @@ Training:
         eta_min: 1e-05
 
 Logging:
-    project: 'IJepa_Experiment'
+    project: 'simgroupattn_v2'
     entity: 'wwy'
     checkpoint_path: 'CHECKPOINTS/ijepa'
     save_every_n_epoch: 50

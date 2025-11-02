@@ -11,8 +11,8 @@ class LightningModel(pl.LightningModule):
         self.save_hyperparameters(ignore=['ppl'])
         self.ppl = ppl
         # Extract optimizer configuration
-        optimizer_config = train_config.Training_Dynamics.optimizer
-        self.max_epochs = train_config.Training_Dynamics.epochs
+        optimizer_config = train_config.optimizer
+        self.max_epochs = train_config.epochs
         self.lr = optimizer_config.lr
         self.beta1 = optimizer_config.beta1
         self.beta2 = optimizer_config.beta2
