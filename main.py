@@ -23,7 +23,7 @@ def main():
 
     # Initialize Weights and Biases
     # fallback to hardcoded key if not set
-    wandb_key = os.environ.get("WANDB_API_KEY", "YOUR_API_KEY")  
+    wandb_key = os.environ.get("WANDB_API_KEY", "e8af882d14d8408f2bbb2c220c22c9499151647f")  
     wandb.login(key=wandb_key)
 
     # Initialize DataModule

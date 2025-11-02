@@ -88,7 +88,7 @@ class Trainer:
                 checkpoint_callback,
                 pl.pytorch.callbacks.LearningRateMonitor(logging_interval='step'),
                 pl.pytorch.callbacks.ModelSummary(max_depth=6),
-            pl.pytorch.callbacks.DeviceStatsMonitor(),
+                pl.pytorch.callbacks.DeviceStatsMonitor(),
             ],
             enable_model_summary=True,
             # deterministic=True,
