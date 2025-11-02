@@ -1,149 +1,101 @@
-
 from typing import Any
+import importlib
 
+# Mapping: model name → (ConfigClassName, ModelClassName)
+_transformer_classes = {
+    "ijepa": ("IJepaConfig", "IJepaModel"),
+    "mae": ("MaeConfig", "MAEForPreTraining"),
+    "simmim": ("SimMIMConfig", "SimMIMForPreTraining"),
+    "data2vec": ("Data2VecVisionConfig", "Data2VecVisionModel"),
+}
+
+# Required fields per model
+_required_fields = {
+    "ijepa": ["img_size","patch_size","chans","D","layers","heads","mlp_ratio","id"],
+    "mae": ["img_size","patch_size","chans","enc_layers","enc_heads","enc_D",
+            "dec_layers","dec_heads","dec_D","mlp_ratio"],
+    "simmim": ["img_size","patch_size","chans","D","layers","heads","inter_D","mlp_ratio"],
+    "data2vec": ["img_size","patch_size","D","layers","heads"]
+}
+
+# Mapping from config kwargs → ppl_config attributes
+_param_map = {
+    "ijepa": {
+        "image_size": "img_size",
+        "patch_size": "patch_size",
+        "num_channels": "chans",
+        "hidden_size": "D",
+        "num_hidden_layers": "layers",
+        "num_attention_heads": "heads",
+        "mlp_ratio": "mlp_ratio"
+    },
+    "mae": {
+        "image_size": "img_size",
+        "patch_size": "patch_size",
+        "num_channels": "chans",
+        "encoder_layers": "enc_layers",
+        "encoder_attention_heads": "enc_heads",
+        "encoder_hidden_size": "enc_D",
+        "decoder_layers": "dec_layers",
+        "decoder_attention_heads": "dec_heads",
+        "decoder_hidden_size": "dec_D",
+        "mask_ratio": "mlp_ratio"
+    },
+    "simmim": {
+        "image_size": "img_size",
+        "patch_size": "patch_size",
+        "num_channels": "chans",
+        "hidden_size": "D",
+        "num_hidden_layers": "layers",
+        "num_attention_heads": "heads",
+        "intermediate_size": "inter_D",
+        "mask_ratio": "mlp_ratio"
+    },
+    "data2vec": {
+        "image_size": "img_size",
+        "patch_size": "patch_size",
+        "hidden_size": "D",
+        "num_hidden_layers": "layers",
+        "num_attention_heads": "heads"
+    }
+}
 
 def load_ppl(ppl_config: Any) -> Any:
-    """Create and return a model based on the provided configuration.
-    This helper builds model config objects and model instances for supported
-    backbones. Return shapes are intentionally kept compatible with the
-    existing codebase:
-      - For 'ijepa': returns (model, processor)
-      - For 'mae'  : returns model
-    The function performs basic validation of expected attributes on
-    `ppl_config` and raises informative errors when required fields are
-    missing. It intentionally does not download or modify pretrained weights
-    beyond what the underlying transformers classes may do.
-    Args:
-        ppl_config: object/namespace containing model configuration fields
-            (e.g. name, img_size, patch_size, chans, D, layers, heads, mlp_ratio, id,
-            enc_layers, enc_heads, enc_D, dec_layers, dec_heads, dec_D).
-    Returns:
-        Model instance, or (model, processor) for IJepa.
-    Raises:
-        ValueError: when required attributes are missing or model name is unknown.
-        NotImplementedError: for backbones that are intentionally unimplemented.
     """
-
-    # Ensure we have a name to switch on
-    name = getattr(ppl_config, "name", None).lower()
+    Generic factory for vision models: IJepa, MAE, SimMIM, Data2Vec.
+    """
+    name = getattr(ppl_config, "name", None)
     if not name:
-        raise ValueError("ppl_config must have a 'name' attribute (e.g. 'ijepa' or 'mae')")
-
-    # IJepa: requires a processor + model config
-    if name == "ijepa":
-        try:
-            import importlib
-            transformers = importlib.import_module("transformers")
-            IJepaConfig = getattr(transformers, "IJepaConfig")
-            IJepaModel = getattr(transformers, "IJepaModel")
-        except Exception as e:
-            raise ImportError(
-                "The 'transformers' package is required for the 'ijepa' backend. "
-                "Install it with: pip install transformers"
-            ) from e
-        # Validate required fields and provide clearer error messages
-        required = ["img_size", "patch_size", "chans", "D", "layers", "heads", "mlp_ratio", "id"]
-        missing = [f for f in required if not hasattr(ppl_config, f)]
-        if missing:
-            raise ValueError(f"Missing required ijepa config fields: {missing}")
-        cfg = IJepaConfig(
-            image_size=ppl_config.img_size,
-            patch_size=ppl_config.patch_size,
-            num_channels=ppl_config.chans,
-            hidden_size=ppl_config.D,
-            num_hidden_layers=ppl_config.layers,
-            num_attention_heads=ppl_config.heads,
-            mlp_ratio=ppl_config.mlp_ratio,
-        )
-        ppl = IJepaModel(cfg)
-        return ppl
-
-    # MAE: encoder/decoder config
-    elif name == "mae":
-        try:
-            transformers = importlib.import_module("transformers")
-            MaeConfig = getattr(transformers, "MaeConfig")
-            MAEForPreTraining = getattr(transformers, "MAEForPreTraining")
-        except Exception as e:
-            raise ImportError(
-                "The 'transformers' package is required for the 'mae' backend. "
-                "Install it with: pip install transformers"
-            ) from e
-        required = [
-            "img_size",
-            "patch_size",
-            "chans",
-            "enc_layers",
-            "enc_heads",
-            "enc_D",
-            "dec_layers",
-            "dec_heads",
-            "dec_D",
-            "mlp_ratio",
-        ]
-        missing = [f for f in required if not hasattr(ppl_config, f)]
-        if missing:
-            raise ValueError(f"Missing required mae config fields: {missing}")
-        cfg = MaeConfig(
-            image_size=ppl_config.img_size,
-            patch_size=ppl_config.patch_size,
-            num_channels=ppl_config.chans,
-            encoder_layers=ppl_config.enc_layers,
-            encoder_attention_heads=ppl_config.enc_heads,
-            encoder_hidden_size=ppl_config.enc_D,
-            decoder_layers=ppl_config.dec_layers,
-            decoder_attention_heads=ppl_config.dec_heads,
-            decoder_hidden_size=ppl_config.dec_D,
-            mask_ratio=ppl_config.mlp_ratio,
-        )
-        ppl = MAEForPreTraining(cfg)
-        return ppl
+        raise ValueError("ppl_config must have a 'name' attribute (e.g. 'ijepa', 'mae', 'simmim', 'data2vec')")
     
-    # SimMIM: model config
-    elif name == 'simmim':
-        try:
-            transformers = importlib.import_module("transformers")
-            SimMIMConfig = getattr(transformers, "SimMIMConfig")
-            SimMIMForPreTraining = getattr(transformers, "SimMIMForPreTraining")
-        except Exception as e:
-            raise ImportError(
-                "The 'transformers' package is required for the 'simmim' backend. "
-                "Install it with: pip install transformers"
-            ) from e
-        required = [
-            "img_size",
-            "patch_size",
-            "chans",
-            "D",
-            "layers",
-            "heads",
-            "inter_D",
-            "mlp_ratio",
-        ]        
-        missing = [f for f in required if not hasattr(ppl_config, f)]
-        if missing:
-            raise ValueError(f"Missing required simmim config fields: {missing}")
-        cfg = SimMIMConfig(
-            image_size=ppl_config.img_size,
-            patch_size=ppl_config.patch_size,
-            num_channels=ppl_config.chans,
-            hidden_size=ppl_config.D,
-            num_hidden_layers=ppl_config.layers,
-            num_attention_heads=ppl_config.heads,
-            intermediate_size=ppl_config.inter_D,
-            mask_ratio=ppl_config.mask_ratio,
-        )
-        ppl = SimMIMForPreTraining(cfg)
-        return ppl
+    lname = name.lower()
     
-    # SimGroupAttn: not implemented
-    elif name == "simgroupattn":
-        raise NotImplementedError(
-            "'simgroupattn' backend is not implemented in load_ppl(). "
-            "Please implement model construction here or call the project's "
-            "factory function for simgroupattn instead."
-        )
+    if lname == "simgroupattn":
+        raise NotImplementedError("'simgroupattn' backend is not implemented in load_ppl()")
     
-    # Unknown model name
-    else:
+    if lname not in _transformer_classes:
         raise ValueError(f"Unknown model name: {name}")
+    
+    # Validate required fields
+    missing = [f for f in _required_fields[lname] if not hasattr(ppl_config, f)]
+    if missing:
+        raise ValueError(f"Missing required {lname} config fields: {missing}")
+    
+    # Import transformers and fetch classes
+    try:
+        transformers = importlib.import_module("transformers")
+        cfg_class_name, model_class_name = _transformer_classes[lname]
+        ConfigClass = getattr(transformers, cfg_class_name)
+        ModelClass = getattr(transformers, model_class_name)
+    except Exception as e:
+        raise ImportError(
+            f"The 'transformers' package is required for the '{name}' backend."
+        ) from e
+    
+    # Map ppl_config -> config kwargs
+    params = {cfg_arg: getattr(ppl_config, ppl_attr)
+              for cfg_arg, ppl_attr in _param_map[lname].items()}
+    
+    cfg = ConfigClass(**params)
+    model = ModelClass(cfg)
+    return model
