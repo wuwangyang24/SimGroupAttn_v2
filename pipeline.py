@@ -4,7 +4,7 @@ import importlib
 # Mapping: model name → (ConfigClassName, ModelClassName)
 _transformer_classes = {
     "ijepa": ("IJepaConfig", "IJepaModel"),
-    "mae": ("MaeConfig", "MAEForPreTraining"),
+    "mae": ("ViTMAEConfig", "ViTMAEForPreTraining"),
     "simmim": ("SimMIMConfig", "SimMIMForPreTraining"),
     "data2vec": ("Data2VecVisionConfig", "Data2VecVisionModel"),
 }
@@ -12,8 +12,20 @@ _transformer_classes = {
 # Required fields per model
 _required_fields = {
     "ijepa": ["img_size","patch_size","in_chans","embed_dim","layers","heads","mlp_ratio"],
-    "mae": ["img_size","patch_size","chans","enc_layers","enc_heads","enc_D",
-            "dec_layers","dec_heads","dec_D","mlp_ratio"],
+    "mae":[
+        "image_size",
+        "patch_size",
+        "num_channels",
+        "num_hidden_layers",
+        "num_attention_heads",
+        "hidden_size",
+        "intermediate_size",
+        "decoder_num_hidden_layers",
+        "decoder_num_attention_heads",
+        "decoder_hidden_size",
+        "decoder_intermediate_size",
+        "mask_ratio"
+    ],
     "simmim": ["img_size","patch_size","chans","D","layers","heads","inter_D","mlp_ratio"],
     "data2vec": ["img_size","patch_size","D","layers","heads"]
 }
@@ -30,16 +42,18 @@ _param_map = {
         "mlp_ratio": "mlp_ratio"
     },
     "mae": {
-        "image_size": "img_size",
+        "image_size": "image_size",
         "patch_size": "patch_size",
-        "num_channels": "chans",
-        "encoder_layers": "enc_layers",
-        "encoder_attention_heads": "enc_heads",
-        "encoder_hidden_size": "enc_D",
-        "decoder_layers": "dec_layers",
-        "decoder_attention_heads": "dec_heads",
-        "decoder_hidden_size": "dec_D",
-        "mask_ratio": "mlp_ratio"
+        "num_channels": "num_channels",
+        "num_hidden_layers": "num_hidden_layers",
+        "num_attention_heads": "num_attention_heads",
+        "hidden_size": "hidden_size",
+        "intermediate_size": "intermediate_size",
+        "decoder_num_hidden_layers": "decoder_num_hidden_layers",
+        "decoder_num_attention_heads": "decoder_num_attention_heads",
+        "decoder_hidden_size": "decoder_hidden_size",
+        "decoder_intermediate_size": "decoder_intermediate_size",
+        "mask_ratio": "mask_ratio"
     },
     "simmim": {
         "image_size": "img_size",
@@ -86,7 +100,7 @@ def load_ppl(ppl_config: Any) -> Any:
         ModelClass = getattr(transformers, model_class_name)
     except Exception as e:
         raise ImportError(
-            f"The 'transformers' package is required for the '{name}' backend."
+            f"The 'transformers' package is required for the '{name}' backend. {e}"
         ) from e
     
     # Map ppl_config -> config kwargs

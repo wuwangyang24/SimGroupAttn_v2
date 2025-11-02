@@ -22,7 +22,6 @@ class LightningModel(pl.LightningModule):
         self.start_factor = optimizer_config.start_factor
         
     def training_step(self, batch: Any, batch_idx: int) -> Any:
-        print(batch.shape)
         loss = self.ppl(batch).loss
         self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         # Read current LR from trainer's optimizer (cheap) and log as scalar
@@ -35,7 +34,6 @@ class LightningModel(pl.LightningModule):
         return loss
 
     def validation_step(self, batch: Any, batch_idx: int) -> Dict[str, Any]:
-        print(batch.shape)
         loss = self.ppl(batch).loss
         self.log(
             "val_loss",

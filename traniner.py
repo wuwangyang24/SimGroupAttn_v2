@@ -42,7 +42,7 @@ class Trainer:
         parts = [
             f"{cfg.Pipeline.name}",
             f"{cfg.Pipeline.backbone}",
-            f"Dim{cfg.Pipeline.embed_dim}"
+            f"Dim{cfg.Pipeline.hidden_size}",
         ]
         return "-".join(parts)
 

@@ -11,16 +11,19 @@ Pipeline:
     name: mae
     backbone: 'vit_base_patch16'
     patch_size: 16
-    in_chans: 3
-    embed_dim: 768
-    encoder_depth: 12
-    encoder_num_heads: 12
-    decoder_embed_dim: 512
-    decoder_depth: 8
-    decoder_num_heads: 16
+    num_channels: 3
+    image_size: 224
+    hidden_size: 768
+    num_hidden_layers: 12
+    num_attention_heads: 12
+    intermediate_size: 3072
+    decoder_num_hidden_layers: 8
+    decoder_num_attention_heads: 16
+    decoder_hidden_size: 512
+    decoder_intermediate_size: 2048
     mask_ratio: 0.75
 
-Training_Dynamics:
+Training:
     batch_size: 64
     epochs: 1600
     val_every_n_epoch: 50
@@ -36,7 +39,7 @@ Training_Dynamics:
         eta_min: 1e-06
 
 Logging:
-    project: 'MAE_Experiment'
+    project: 'simgroupattn_v2'
     entity: 'wwy'
     checkpoint_path: 'CHECKPOINTS/mae'
     save_every_n_epoch: 50
