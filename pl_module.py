@@ -48,7 +48,7 @@ class LightningModel(pl.LightningModule):
 
     def configure_optimizers(self) -> Dict[str, Any]:
         optimizer = torch.optim.AdamW(
-            self.model.parameters(),
+            self.ppl.parameters(),
             betas=(self.beta1, self.beta2),
             lr=self.lr,
             weight_decay=self.weight_decay
