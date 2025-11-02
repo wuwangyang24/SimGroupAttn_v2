@@ -110,16 +110,13 @@ class Trainer:
             profiler="simple",
         )
 
-    def train(self) -> None:
+    def train(self, data_module: pl.LightningDataModule) -> None:
         """Train the model with checkpoint resumption."""
         try:
             print("Starting training...")
-            train_loader, val_loader = None, None  # TODO: replace with actual dataloaders
-
             self.pl_trainer.fit(
                 model=self.pl_module,
-                train_dataloaders=train_loader,
-                val_dataloaders=val_loader,
+                datamodule=data_module,
                 ckpt_path=self.resume_checkpoint
             )
             print("Training completed successfully.")
