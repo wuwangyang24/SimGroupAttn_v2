@@ -74,7 +74,7 @@ class Trainer:
         )
 
         return pl.Trainer(
-            accelerator="mps",
+            accelerator="cpu",
             accumulate_grad_batches=self.config.Training.accumulate_grad_batches,
             max_epochs=self.config.Training.epochs,
             gradient_clip_val=1.0,
@@ -85,8 +85,8 @@ class Trainer:
             callbacks=[
                 checkpoint_callback,
                 pl.pytorch.callbacks.LearningRateMonitor(logging_interval='step'),
-                pl.pytorch.callbacks.ModelSummary(max_depth=2),
-                pl.pytorch.callbacks.DeviceStatsMonitor(),
+                pl.pytorch.callbacks.ModelSummary(max_depth=4),
+                #pl.pytorch.callbacks.DeviceStatsMonitor(),
             ],
             enable_model_summary=True,
             # deterministic=True,

@@ -1,8 +1,11 @@
 Data:
-    train_dir: ''
-    val_dir: ''
-    test_dir: ''
+    train_dir: Data/train
+    val_dir: Data/val
     image_size: [224, 224]
+    num_workers: 8
+    pin_memory: true
+    batch_size: 2
+    drop_last: true
 
 Pipeline:
     name: mae

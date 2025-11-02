@@ -4,7 +4,7 @@ Data:
     image_size: [224, 224]
     num_workers: 8
     pin_memory: true
-    batch_size: 32
+    batch_size: 2
     drop_last: true
 
 Pipeline:
