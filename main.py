@@ -1,35 +1,39 @@
 import os
-import sys
-import yaml
 import argparse
-from Trainer import Trainer
-from pl_module import LightningModel
-from dataloader import ImageDataModule
+import yaml
 import wandb
+from traniner import Trainer
+from dataloader import ImageDataModule
 
-# Parse command line arguments
-parser = argparse.ArgumentParser(description='Training script for SimGroupAttn_v2')
-parser.add_argument('--config', type=str, default='config.yaml', help='Path to the configuration file')
-args = parser.parse_args()
+def load_config(config_path: str) -> dict:
+    """Load YAML configuration file."""
+    if not os.path.exists(config_path):
+        raise FileNotFoundError(f"Configuration file {config_path} not found.")
+    with open(config_path, 'r') as f:
+        return yaml.safe_load(f)
 
-# Load configuration
-config_path = args.config
-if not os.path.exists(config_path):
-    print(f'Configuration file {config_path} not found.')
-    sys.exit(1)
+def main():
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description='Training script for SimGroupAttn_v2')
+    parser.add_argument('--config', type=str, default='config.yaml', help='Path to the configuration file')
+    args = parser.parse_args()
 
-with open(config_path, 'r') as file:
-    config = yaml.safe_load(file)
+    # Load configuration
+    config = load_config(args.config)
 
-# Initialize Weights and Biases
-wandb.login(key="YOUR_API_KEY")
+    # Initialize Weights and Biases
+    # fallback to hardcoded key if not set
+    wandb_key = os.environ.get("WANDB_API_KEY", "YOUR_API_KEY")  
+    wandb.login(key=wandb_key)
 
-# Initialize DataModule
-data_module = ImageDataModule(config['Data'])
+    # Initialize DataModule
+    data_module = ImageDataModule(config['Data'])
 
-# Intialize Trainer
-trainer = Trainer(config, data_module)
+    # Initialize Trainer
+    trainer = Trainer(config, data_module)
 
-# Start training
-if __name__ == '__main__':
+    # Start training
     trainer.train()
+
+if __name__ == '__main__':
+    main()
