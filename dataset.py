@@ -6,7 +6,7 @@ from torch.utils.data import Dataset
 import torchvision.transforms as T
 
 
-class LargeImageDataset(Dataset):
+class ImageDataset(Dataset):
     """Dataset for loading images lazily from a directory with millions of files."""
     IMAGE_EXTENSIONS = (".png", ".jpg", ".jpeg", ".bmp", ".gif")
 

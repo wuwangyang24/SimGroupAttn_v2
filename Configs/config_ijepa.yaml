@@ -1,8 +1,11 @@
 Data:
-    train_dir: ''
-    val_dir: ''
-    test_dir: ''
+    train_dir: Data/train
+    val_dir: Data/val
     image_size: [224, 224]
+    num_workers: 8
+    pin_memory: true
+    batch_size: 32
+    drop_last: true
 
 Pipeline:
     name: ijepa
@@ -18,8 +21,7 @@ Pipeline:
         strategy: 'block'
         mask_ratio: 0.5
 
-Training_Dynamics:
-    batch_size: 24
+Training:
     epochs: 800
     val_every_n_epoch: 50
     accumulate_grad_batches: 2

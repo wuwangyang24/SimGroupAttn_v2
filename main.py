@@ -1,16 +1,15 @@
 import os
 import argparse
-import yaml
+from omegaconf import OmegaConf
 import wandb
 from traniner import Trainer
 from dataloader import ImageDataModule
 
 def load_config(config_path: str) -> dict:
-    """Load YAML configuration file."""
     if not os.path.exists(config_path):
         raise FileNotFoundError(f"Configuration file {config_path} not found.")
-    with open(config_path, 'r') as f:
-        return yaml.safe_load(f)
+    config = OmegaConf.load(config_path)
+    return config
 
 def main():
     # Parse command line arguments
@@ -30,10 +29,10 @@ def main():
     data_module = ImageDataModule(config['Data'])
 
     # Initialize Trainer
-    trainer = Trainer(config, data_module)
+    trainer = Trainer(config)
 
     # Start training
-    trainer.train()
+    trainer.train(data_module)
 
 if __name__ == '__main__':
     main()
