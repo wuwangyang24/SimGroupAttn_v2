@@ -75,7 +75,6 @@ class Trainer:
 
         return pl.Trainer(
             accelerator="cpu",
-            accumulate_grad_batches=self.config.Training.accumulate_grad_batches,
             max_epochs=self.config.Training.epochs,
             gradient_clip_val=1.0,
             check_val_every_n_epoch=self.config.Training.val_every_n_epoch,
