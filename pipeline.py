@@ -55,7 +55,6 @@ def load_ppl(ppl_config: Any) -> Any:
             num_attention_heads=ppl_config.heads,
             mlp_ratio=ppl_config.mlp_ratio,
         )
-        # Instantiate model from config (no pretrained weights by default)
         ppl = IJepaModel(cfg)
         return ppl
 
@@ -99,13 +98,52 @@ def load_ppl(ppl_config: Any) -> Any:
         )
         ppl = MAEForPreTraining(cfg)
         return ppl
+    
+    # SimMIM: model config
+    elif name == 'simmim':
+        try:
+            transformers = importlib.import_module("transformers")
+            SimMIMConfig = getattr(transformers, "SimMIMConfig")
+            SimMIMForPreTraining = getattr(transformers, "SimMIMForPreTraining")
+        except Exception as e:
+            raise ImportError(
+                "The 'transformers' package is required for the 'simmim' backend. "
+                "Install it with: pip install transformers"
+            ) from e
+        required = [
+            "img_size",
+            "patch_size",
+            "chans",
+            "D",
+            "layers",
+            "heads",
+            "inter_D",
+            "mlp_ratio",
+        ]        
+        missing = [f for f in required if not hasattr(ppl_config, f)]
+        if missing:
+            raise ValueError(f"Missing required simmim config fields: {missing}")
+        cfg = SimMIMConfig(
+            image_size=ppl_config.img_size,
+            patch_size=ppl_config.patch_size,
+            num_channels=ppl_config.chans,
+            hidden_size=ppl_config.D,
+            num_hidden_layers=ppl_config.layers,
+            num_attention_heads=ppl_config.heads,
+            intermediate_size=ppl_config.inter_D,
+            mask_ratio=ppl_config.mask_ratio,
+        )
+        ppl = SimMIMForPreTraining(cfg)
+        return ppl
+    
+    # SimGroupAttn: not implemented
     elif name == "simgroupattn":
         raise NotImplementedError(
             "'simgroupattn' backend is not implemented in load_ppl(). "
             "Please implement model construction here or call the project's "
             "factory function for simgroupattn instead."
         )
-
+    
     # Unknown model name
     else:
         raise ValueError(f"Unknown model name: {name}")
