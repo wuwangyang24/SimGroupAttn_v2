@@ -42,22 +42,9 @@ class Trainer:
     def _generate_experiment_name(self, cfg: DictConfig) -> str:
         """Generate a structured experiment name from configuration."""
         parts = [
-            f"ViT-{cfg.Model_Configs.depth}",
-            f"H{cfg.Model_Configs.num_heads}",
-            f"HDim{cfg.Model_Configs.dim_head}",
-            f"D{cfg.Model_Configs.embed_dim}",
-            f"S{cfg.Data.img_size}",
-            f"Grouped{cfg.Data.stratified}",
-            f"M{cfg.Similarity_Configs.n_edges_self_image}",
-            f"N{cfg.Similarity_Configs.n_edges_other_images}",
-            f"MaskT{cfg.Training_Dynamics.mask.mask_strategy}",
-            f"MaskR{cfg.Training_Dynamics.mask.mask_ratio}",
-            f"B{cfg.Training_Dynamics.batch_size}",
-            f"AccuG{cfg.Training_Dynamics.accumulate_grad_batches}",
-            f"LR{cfg.Training_Dynamics.optimizer.lr}",
-            f"CLS{cfg.Model_Configs.cls_token}",
-            f"AttnM{cfg.Model_Configs.masked_attn}",
-            f"ConnM{cfg.Similarity_Configs.conn_with_mask}",
+            f"{cfg.Pipeline.name}",
+            f"{cfg.Pipeline.backbone}",
+            f"Dim{cfg.Pipeline.embed_dim}"
         ]
         return "-".join(parts)
 

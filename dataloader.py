@@ -12,7 +12,6 @@ def default_transforms(image_size: Tuple[int, int]) -> T.Compose:
         T.ToTensor(),
     ])
 
-
 def create_dataloader(
     dataset: Dataset,
     batch_size: int,
@@ -32,7 +31,6 @@ def create_dataloader(
         drop_last=drop_last,
         collate_fn=collate_fn,
     )
-
 
 class ImageDataModule(pl.LightningDataModule):
     """Lightning DataModule for image datasets.
