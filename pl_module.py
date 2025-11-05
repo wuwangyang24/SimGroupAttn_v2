@@ -35,6 +35,7 @@ class LightningModel(pl.LightningModule):
 
     def validation_step(self, batch: Any, batch_idx: int) -> Dict[str, Any]:
         loss = self.ppl(batch).loss
+        print(loss)
         self.log(
             "val_loss",
             loss,
