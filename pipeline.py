@@ -5,7 +5,7 @@ import importlib
 _transformer_classes = {
     "ijepa": ("IJepaConfig", "IJepaModel"),
     "mae": ("ViTMAEConfig", "ViTMAEForPreTraining"),
-    "simmim": ("SimMIMConfig", "SimMIMForPreTraining"),
+    "swim": ("SwinConfig", "SwinForMaskedImageModeling"),
     "data2vec": ("Data2VecVisionConfig", "Data2VecVisionModel"),
 }
 
@@ -24,9 +24,15 @@ _required_fields = {
         "decoder_num_attention_heads",
         "decoder_hidden_size",
         "decoder_intermediate_size",
-        "mask_ratio"
-    ],
-    "simmim": ["img_size","patch_size","chans","D","layers","heads","inter_D","mlp_ratio"],
+        "mask_ratio"],
+    "swim": [    
+        "image_size",
+        "patch_size",
+        "num_channels",
+        "embed_dim",
+        "depths",
+        "num_heads",
+        "window_size"],
     "data2vec": ["img_size","patch_size","D","layers","heads"]
 }
 
@@ -55,16 +61,15 @@ _param_map = {
         "decoder_intermediate_size": "decoder_intermediate_size",
         "mask_ratio": "mask_ratio"
     },
-    "simmim": {
-        "image_size": "img_size",
-        "patch_size": "patch_size",
-        "num_channels": "chans",
-        "hidden_size": "D",
-        "num_hidden_layers": "layers",
-        "num_attention_heads": "heads",
-        "intermediate_size": "inter_D",
-        "mask_ratio": "mlp_ratio"
-    },
+    "swim": {    
+            "image_size": "image_size",
+            "patch_size": "patch_size",
+            "num_channels": "num_channels",
+            "embed_dim": "embed_dim",
+            "depths": "depths",
+            "num_heads": "num_heads",
+            "window_size": "window_size",
+        },
     "data2vec": {
         "image_size": "img_size",
         "patch_size": "patch_size",

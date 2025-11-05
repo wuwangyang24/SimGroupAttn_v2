@@ -1,0 +1,40 @@
+Data:
+    train_dir: Data/train
+    val_dir: Data/val
+    image_size: [224, 224]
+    num_workers: 8
+    pin_memory: true
+    batch_size: 2
+    drop_last: true
+
+Pipeline:
+    name: swim
+    backbone: 'vit_base_patch16'
+    patch_size: 16
+    num_channels: 3
+    image_size: 224
+    embed_dim: 768  
+    depths: [2, 2, 6, 2]
+    num_heads: [3, 6, 12, 24]
+    window_size: 7
+
+Training:
+    batch_size: 64
+    epochs: 1600
+    val_every_n_epoch: 50
+    optimizer:
+        name: 'adamw'
+        lr: 0.0003
+        warmup_epochs: 10
+        start_factor: 0.1
+        beta1: 0.9
+        beta2: 0.999
+        weight_decay: 0.05
+        eta_min: 1e-06
+
+Logging:
+    project: 'simgroupattn_v2'
+    entity: 'wwy'
+    checkpoint_path: 'CHECKPOINTS/mae'
+    save_every_n_epoch: 50
+    num_samples: 8
