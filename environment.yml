@@ -1,0 +1,32 @@
+name: simgroupattn_v2
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - faiss-gpu
+  - pip
+  - pip:
+      # Core Deep Learning Libraries
+      - torch
+      - torchvision
+      - lightning
+      - transformers
+
+      # Model & Training Dependencies
+      - timm
+      - einops
+
+      # Configuration & Logging
+      - wandb
+      - omegaconf
+
+      # Image Processing
+      - opencv-python-headless
+
+      # Development Tools
+      - pytest
+      - black
+      - isort
+      - mypy
+      - pre-commit
