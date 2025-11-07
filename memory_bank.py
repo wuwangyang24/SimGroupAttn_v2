@@ -1,5 +1,6 @@
 import torch
 
+
 class MemoryBank:
     def __init__(self, capacity: int, embed_dim: int, device='cpu', dtype=torch.float32) -> None:
         self.capacity = capacity
