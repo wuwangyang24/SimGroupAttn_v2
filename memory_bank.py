@@ -2,6 +2,7 @@ import torch
 
 
 class MemoryBank:
+    """A fixed-size memory bank for storing embeddings."""
     def __init__(self, capacity: int, embed_dim: int, device='cpu', dtype=torch.float32) -> None:
         self.capacity = capacity
         self.embed_dim = embed_dim

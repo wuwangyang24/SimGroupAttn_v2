@@ -4,13 +4,14 @@ import faiss.contrib.torch_utils
 
 
 class MemorySearcherFaiss:
+    """A FAISS-based searcher for efficient nearest neighbor search."""
     def __init__(self, embed_dim: int, device='gpu') -> None:
         self.device = device
-        # GPU resources
-        res = faiss.StandardGpuResources() 
         # Inner product index 
         self.index = faiss.IndexFlatIP(embed_dim)
         if device.startswith('cuda') or device == 'gpu':
+            # GPU resources
+            res = faiss.StandardGpuResources() 
             # Move index to GPU 0
             self.index = faiss.index_cpu_to_gpu(res, 0, self.index)
 
