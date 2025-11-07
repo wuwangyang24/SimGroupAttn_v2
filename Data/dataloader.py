@@ -1,7 +1,7 @@
 from typing import Optional, Tuple, Callable
 import lightning as pl
 from torch.utils.data import DataLoader, Dataset
-from dataset import ImageDataset
+from Data.dataset import ImageDataset
 from torchvision import transforms as T
 
 

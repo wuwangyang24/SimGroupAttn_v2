@@ -2,8 +2,8 @@ import os
 import argparse
 from omegaconf import OmegaConf
 import wandb
-from traniner import Trainer
-from dataloader import ImageDataModule
+from Framework.traniner import Trainer
+from Data.dataloader import ImageDataModule
 
 def load_config(config_path: str) -> dict:
     if not os.path.exists(config_path):

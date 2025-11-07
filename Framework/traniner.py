@@ -5,8 +5,8 @@ import warnings
 import lightning as pl
 from lightning.pytorch.loggers import WandbLogger
 from omegaconf import DictConfig
-from pl_module import LightningModel
-from pipeline import load_ppl
+from Framework.pl_module import LightningModel
+from Framework.pipeline import load_ppl
 warnings.filterwarnings("ignore")
 
 
