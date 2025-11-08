@@ -1,6 +1,7 @@
 import torch
 from torch import Tensor
 from Backbone.SimpleViT import SimpleViT
+from utils import select_positional_embeddings
 from typing import Optional
 
 
@@ -40,56 +41,22 @@ class ContextEncoder(SimpleViT):
             norm_layer=norm_layer,
         )
 
-    @staticmethod
-    def select_positional_embeddings(
-        pos_embed: Tensor,
-        selected_idx: Tensor,
-        cls_token: bool = True
-    ) -> Tensor:
-        """
-        Select positional embeddings for specific patches.
-        Args:
-            pos_embed: Tensor of shape (1, N, D) or (1, N+1, D)
-            selected_idx: Tensor of selected patch indices, shape (M,)
-            cls_token: Whether CLS token exists in pos_embed
-        Returns:
-            Tensor of shape (1, M+1, D) if cls_token else (1, M, D)
-        """
-        if cls_token:
-            cls_pos_embed = pos_embed[:, 0:1, :]  # (1, 1, D)
-            selected_pos_embed = pos_embed[:, 1:, :].index_select(1, selected_idx)  # (1, M, D)
-            return torch.cat((cls_pos_embed, selected_pos_embed), dim=1)  # (1, M+1, D)
-        else:
-            return pos_embed.index_select(1, selected_idx)  # (1, M, D)
-
     def forward(
         self, 
-        x: Tensor, 
-        selected_idx: Optional[Tensor] = None
+        x: Tensor,
     ) -> Tensor:
         """
         Forward pass through the ContextEncoder.
         Args:
-            x: Input patch embeddings, shape (B, N, D)
-            selected_idx: Optional tensor of selected patch indices, shape (M,)
+            x: Input patch embeddings, shape (B, M, D)
         Returns:
-            Output embeddings, shape (B, N_+1, D) or (B, N_, D)
+            Output embeddings, shape (B, M, D) or (B, M+1, D)
         """
         cls_token_exists = self.cls_token is not None
-        # Select positional embeddings first
-        if selected_idx is not None:
-            pos_embed = self.select_positional_embeddings(
-                self.pos_embed, selected_idx, cls_token=cls_token_exists
-            )
-            x = x[:, selected_idx]  # (B, M, D)
-        else:
-            pos_embed = self.pos_embed
         # Prepend CLS token if exists
         if cls_token_exists:
             cls_tokens = self.cls_token.expand(x.size(0), -1, -1)  # (B, 1, D)
             x = torch.cat((cls_tokens, x), dim=1)  # (B, N_+1, D)
-        # Add positional embeddings and dropout
-        x = x + pos_embed
         x = self.pos_drop(x)
         # Forward through transformer blocks
         for blk in self.blocks:
