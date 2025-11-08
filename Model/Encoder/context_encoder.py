@@ -1,15 +1,15 @@
 import torch
 from torch import Tensor
-from Backbone.SimpleViT import SimpleViT
+from Backbone.SimpleViT.simpleViT import VisionTransformer
 from utils import select_positional_embeddings
 from typing import Optional
 
 
-class ContextEncoder(SimpleViT):
+class ContextEncoder(VisionTransformer):
     """ Context Encoder based on SimpleViT architecture."""
     def __init__(
         self,
-        img_size: int = 224,
+        img_size: list = [224],
         patch_size: int = 16,
         in_chans: int = 3,
         embed_dim: int = 768,
@@ -17,12 +17,12 @@ class ContextEncoder(SimpleViT):
         num_heads: int = 12,
         mlp_ratio: float = 4.0,
         qkv_bias: bool = True,
-        representation_size: Optional[int] = None,
-        distilled: bool = False,
+        qk_scale: Optional[float] = None,
         drop_rate: float = 0.0,
         attn_drop_rate: float = 0.0,
         drop_path_rate: float = 0.0,
         norm_layer: Optional[torch.nn.Module] = None,
+        init_std: float = 0.02,
     ):
         super().__init__(
             img_size=img_size,
@@ -33,12 +33,12 @@ class ContextEncoder(SimpleViT):
             num_heads=num_heads,
             mlp_ratio=mlp_ratio,
             qkv_bias=qkv_bias,
-            representation_size=representation_size,
-            distilled=distilled,
+            qk_scale=qk_scale,
             drop_rate=drop_rate,
             attn_drop_rate=attn_drop_rate,
             drop_path_rate=drop_path_rate,
             norm_layer=norm_layer,
+            init_std=init_std,
         )
 
     def forward(
