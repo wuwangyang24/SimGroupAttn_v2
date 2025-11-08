@@ -4,16 +4,13 @@
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
 #
-
 import math
 from functools import partial
 import numpy as np
 import torch
 import torch.nn as nn
-
 from utils import (
     trunc_normal_,
-    repeat_interleave_batch,
     apply_masks
 )
 
@@ -211,19 +208,23 @@ class VisionTransformer(nn.Module):
         super().__init__()
         self.num_features = self.embed_dim = embed_dim
         self.num_heads = num_heads
-        # --
+        # patch embedding
         self.patch_embed = PatchEmbed(
             img_size=img_size[0],
             patch_size=patch_size,
             in_chans=in_chans,
             embed_dim=embed_dim)
         num_patches = self.patch_embed.num_patches
-        # --
+        # class token and position embedding
         self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
         self.pos_embed = nn.Parameter(torch.zeros(1, num_patches + 1, embed_dim), requires_grad=False)
-        pos_embed = get_2d_sincos_pos_embed(..., cls_token=True)
+        pos_embed = get_2d_sincos_pos_embed(
+            embed_dim=embed_dim,
+            grid_size=int(num_patches ** 0.5),
+            cls_token=True
+        )
         self.pos_embed.data.copy_(torch.from_numpy(pos_embed).float().unsqueeze(0))
-        # --
+        # transformer blocks
         dpr = [x.item() for x in torch.linspace(0, drop_path_rate, depth)]  # stochastic depth decay rule
         self.blocks = nn.ModuleList([
             Block(
@@ -231,7 +232,7 @@ class VisionTransformer(nn.Module):
                 drop=drop_rate, attn_drop=attn_drop_rate, drop_path=dpr[i], norm_layer=norm_layer)
             for i in range(depth)])
         self.norm = norm_layer(embed_dim)
-        # ------
+        # init weights
         self.init_std = init_std
         self.apply(self._init_weights)
         self.fix_init_weight()
