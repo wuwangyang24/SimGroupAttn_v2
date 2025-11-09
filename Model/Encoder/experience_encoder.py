@@ -1,7 +1,6 @@
 import torch
 from torch import Tensor
 from Backbone.SimpleViT import SimpleViT
-from utils import select_positional_embeddings
 from typing import Optional
 
 

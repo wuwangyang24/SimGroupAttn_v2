@@ -3,36 +3,54 @@ import torch
 
 class MemoryBank:
     """A fixed-size memory bank for storing embeddings."""
-    def __init__(self, capacity: int, embed_dim: int, device='cpu', dtype=torch.float32) -> None:
+    def __init__(self, capacity: int, embed_dim: int, device='cpu', dtype=torch.float16) -> None:
         self.capacity = capacity
         self.embed_dim = embed_dim
-        self.device = device
+        self.device = torch.device(device)
         self.dtype = dtype
-        self.memory = torch.zeros(capacity, embed_dim, device=device, dtype=dtype)
+        # Preallocate contiguous memory
+        self.memory = torch.empty((capacity, embed_dim), device=self.device, dtype=self.dtype)
+        self.scores = torch.empty(capacity, device=self.device, dtype=self.dtype)
         self.stored_size = 0
 
-    def add(self, items: torch.Tensor) -> None:
-        """Add new embeddings to the memory bank."""
-        items = items.to(self.device, self.dtype)
-        n = items.shape[0]
-        # space left in bank
-        space_left = max(self.capacity - self.stored_size, 0)
+    @torch.no_grad()
+    def add(self, items: torch.Tensor, scores: torch.Tensor, mode: str = "random") -> None:
+        """
+        Add new embeddings to the memory bank.
+        Args:
+            items: Tensor of shape [N, D]
+            scores: Tensor of shape [N]
+            mode: "random" (replace random items) or "replow" (replace lowest-score items)
+        """
+        assert mode in {"random", "replow"}, f"Invalid mode: {mode}"
+
+        items = items.to(self.device, self.dtype, non_blocking=True)
+        scores = scores.to(self.device, self.dtype, non_blocking=True)
+        n = items.size(0)
         # fill available space first
-        fill = min(space_left, n)
-        if fill > 0:
-            self.memory[self.stored_size:self.stored_size+fill] = items[:fill]
-            self.stored_size += fill
-        # if overflow, randomly replace existing items
-        overflow = n - fill
-        if overflow > 0:
+        if self.stored_size < self.capacity:
+            fill = min(self.capacity - self.stored_size, n)
+            end = self.stored_size + fill
+            self.memory[self.stored_size:end].copy_(items[:fill])
+            self.scores[self.stored_size:end].copy_(scores[:fill])
+            self.stored_size = end
+            if fill == n:
+                return
+            items = items[fill:]
+            scores = scores[fill:]
+        # overflow handling
+        overflow = items.size(0)
+        if mode == "random":
             idx = torch.randint(0, self.capacity, (overflow,), device=self.device)
-            self.memory[idx] = items[fill:]
+        else:  # "replow"
+            _, idx = torch.topk(self.scores, overflow, largest=False)
+        self.memory[idx].copy_(items)
+        self.scores[idx].copy_(scores)
 
     def clear(self) -> None:
         """Reset memory bank in-place."""
-        self.memory.zero_()
         self.stored_size = 0
 
     def get_memory(self) -> torch.Tensor:
         """Return the valid part of the memory bank."""
-        return self.memory[:self.stored_size] if self.stored_size < self.capacity else self.memory
+        return self.memory[:self.stored_size]
