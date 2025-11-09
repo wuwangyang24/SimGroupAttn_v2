@@ -8,10 +8,7 @@ class MemoryBank:
         self.embed_dim = embed_dim
         self.device = torch.device(device)
         self.dtype = dtype
-        # Preallocate contiguous memory
-        self.memory = torch.empty((capacity, embed_dim), device=self.device, dtype=self.dtype)
-        self.scores = torch.empty(capacity, device=self.device, dtype=self.dtype)
-        self.stored_size = 0
+        self.memory, self.scores, self.stored_size = self.reset()
 
     @torch.no_grad()
     def add(self, items: torch.Tensor, scores: torch.Tensor, mode: str = "random") -> None:
@@ -47,9 +44,17 @@ class MemoryBank:
         self.memory[idx].copy_(items)
         self.scores[idx].copy_(scores)
 
-    def clear(self) -> None:
-        """Reset memory bank in-place."""
+    def reset(self) -> None:
+        """Reset memory bank (Preallocate contiguous memory).
+         Returns:
+             memory: Tensor of shape [capacity, embed_dim]
+             scores: Tensor of shape [capacity]
+             stored_size: int
+         """
+        self.memory = torch.empty((self.capacity, self.embed_dim), device=self.device, dtype=self.dtype)
+        self.scores = torch.empty(self.capacity, device=self.device, dtype=self.dtype)
         self.stored_size = 0
+        return self.memory, self.scores, self.stored_size
 
     def get_memory(self) -> torch.Tensor:
         """Return the valid part of the memory bank."""
