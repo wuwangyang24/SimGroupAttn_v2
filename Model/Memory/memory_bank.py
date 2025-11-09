@@ -13,7 +13,6 @@ class MemoryBank:
         # initialize recollect module
         self.recollector = RecollectFaiss(embed_dim, device=device)
 
-
     @torch.no_grad()
     def memorize(self, items: torch.Tensor, scores: torch.Tensor, mode: str = "random") -> None:
         """
