@@ -1,4 +1,5 @@
 import torch
+from Model.Memory.recollecter_faiss import RecollectFaiss
 
 
 class MemoryBank:
@@ -9,9 +10,12 @@ class MemoryBank:
         self.device = torch.device(device)
         self.dtype = dtype
         self.memory, self.scores, self.stored_size = self.reset()
+        # initialize recollect module
+        self.recollector = RecollectFaiss(embed_dim, device=device)
+
 
     @torch.no_grad()
-    def add(self, items: torch.Tensor, scores: torch.Tensor, mode: str = "random") -> None:
+    def memorize(self, items: torch.Tensor, scores: torch.Tensor, mode: str = "random") -> None:
         """
         Add new embeddings to the memory bank.
         Args:
@@ -43,6 +47,22 @@ class MemoryBank:
             _, idx = torch.topk(self.scores, overflow, largest=False)
         self.memory[idx].copy_(items)
         self.scores[idx].copy_(scores)
+
+    def recollect(self, query: torch.Tensor, k: int) -> torch.Tensor:
+        """Retrieve top-k similar embeddings from memory bank for given queries.
+        Args:
+            query: Tensor of shape [M, D]
+            k: number of nearest neighbors to retrieve
+        Returns:
+            distances: Tensor of shape [M, k]
+            indices: Tensor of shape [M, k]
+        """
+        if self.stored_size == 0:
+            raise ValueError("Memory bank is empty. Cannot perform recollection.")
+        # Update FAISS index with current memory
+        self.recollector.update_index(self.memory[:self.stored_size])
+        distances, indices = self.recollector.recollect(query.to(self.device), k)
+        return distances, indices
 
     def reset(self) -> None:
         """Reset memory bank (Preallocate contiguous memory).
