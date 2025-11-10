@@ -50,8 +50,8 @@ class SignalEncoder(VisionTransformer):
             attn_scores: Tensor of shape [B, H, N, N], attention scores.
             context_ratio: float, ratio of context patches to total patches.
         Returns:
-            context_mask: Tensor of shape [B, M], binary mask indicating context patches.
-            non_context_mask: Tensor of shape [B, N-M], binary mask indicating non-context patches.
+            non_context_scores: Tensor of shape [B, M], attention scores for non-context patches.
+            non_context_patches: Tensor of shape [B, M, D], non-context patch embeddings.
         """
         N = attn_scores[-1]
         # Regeneration difficulty
