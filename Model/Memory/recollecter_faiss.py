@@ -14,12 +14,11 @@ class RecollectFaiss:
             res = faiss.StandardGpuResources() 
             # Move index to GPU 0
             self.index = faiss.index_cpu_to_gpu(res, 0, self.index)
-        self.temp_memory = None
 
     def update_index(self, memory: torch.Tensor) -> None:
         self.index.reset()
-        self.index.add(memory.to(self.device))
+        self.index.add(memory)
 
     def recollect(self, query: torch.Tensor, k: int) -> torch.Tensor:
         D, I = self.index.search(query, k)
-        return torch.from_numpy(D).to(self.device), torch.from_numpy(I).to(self.device)
+        return torch.from_numpy(D), torch.from_numpy(I)

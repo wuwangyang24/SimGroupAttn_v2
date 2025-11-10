@@ -160,12 +160,10 @@ class Block(nn.Module):
 
     def forward(self, x, return_attention=False):
         y, attn = self.attn(self.norm1(x))
-        if return_attention:
-            return attn
         x = x + self.drop_path(y)
         x = x + self.drop_path(self.mlp(self.norm2(x)))
-        return x
-
+        return x if not return_attention else x, attn
+    
 
 class PatchEmbed(nn.Module):
     """ Image to Patch Embedding
@@ -203,6 +201,8 @@ class VisionTransformer(nn.Module):
         drop_path_rate=0.0,
         norm_layer=nn.LayerNorm,
         init_std=0.02,
+        cls_token=True,
+        return_attention=False,
         **kwargs
     ):
         super().__init__()
@@ -216,12 +216,16 @@ class VisionTransformer(nn.Module):
             embed_dim=embed_dim)
         num_patches = self.patch_embed.num_patches
         # class token and position embedding
-        self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
-        self.pos_embed = nn.Parameter(torch.zeros(1, num_patches + 1, embed_dim), requires_grad=False)
+        if cls_token:
+            self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
+            self.pos_embed = nn.Parameter(torch.zeros(1, num_patches + 1, embed_dim), requires_grad=False)
+        else:
+            self.cls_token = None
+            self.pos_embed = nn.Parameter(torch.zeros(1, num_patches, embed_dim), requires_grad=False)
         pos_embed = get_2d_sincos_pos_embed(
             embed_dim=embed_dim,
             grid_size=int(num_patches ** 0.5),
-            cls_token=True
+            cls_token=cls_token
         )
         self.pos_embed.data.copy_(torch.from_numpy(pos_embed).float().unsqueeze(0))
         # transformer blocks
@@ -232,6 +236,7 @@ class VisionTransformer(nn.Module):
                 drop=drop_rate, attn_drop=attn_drop_rate, drop_path=dpr[i], norm_layer=norm_layer)
             for i in range(depth)])
         self.norm = norm_layer(embed_dim)
+        self.return_attention = return_attention
         # init weights
         self.init_std = init_std
         self.apply(self._init_weights)
@@ -268,8 +273,9 @@ class VisionTransformer(nn.Module):
         B, N, D = x.shape
 
         # -- add positional embedding to x
-        cls_tokens = self.cls_token.expand(B, -1, -1)
-        x = torch.cat((cls_tokens, x), dim=1)
+        if self.cls_token is not None:
+            cls_tokens = self.cls_token.expand(B, -1, -1)
+            x = torch.cat((cls_tokens, x), dim=1)
         pos_embed = self.interpolate_pos_encoding(x, self.pos_embed)
         x = x + pos_embed
 
@@ -279,12 +285,15 @@ class VisionTransformer(nn.Module):
 
         # -- fwd prop
         for i, blk in enumerate(self.blocks):
-            x = blk(x)
+            if self.return_attention:
+                x, attn = blk(x, True)
+            else:
+                x = blk(x)
 
         if self.norm is not None:
             x = self.norm(x)
 
-        return x
+        return x if self.return_attention else x, attn
 
     def interpolate_pos_encoding(self, x, pos_embed):
         npatch = x.shape[1] - 1

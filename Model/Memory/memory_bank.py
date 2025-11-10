@@ -4,7 +4,7 @@ from Model.Memory.recollecter_faiss import RecollectFaiss
 
 class MemoryBank:
     """A fixed-size memory bank for storing embeddings."""
-    def __init__(self, capacity: int, embed_dim: int, device='cpu', dtype=torch.float16) -> None:
+    def __init__(self, capacity: int, embed_dim: int, device='gpu', dtype=torch.float16) -> None:
         self.capacity = capacity
         self.embed_dim = embed_dim
         self.device = torch.device(device)
@@ -23,9 +23,8 @@ class MemoryBank:
             mode: "random" (replace random items) or "replow" (replace lowest-score items)
         """
         assert mode in {"random", "replow"}, f"Invalid mode: {mode}"
-
-        items = items.to(self.device, self.dtype, non_blocking=True)
-        scores = scores.to(self.device, self.dtype, non_blocking=True)
+        items = items.clone().to(self.device, self.dtype)
+        scores = scores.clone().to(self.device, self.dtype)
         n = items.size(0)
         # fill available space first
         if self.stored_size < self.capacity:
