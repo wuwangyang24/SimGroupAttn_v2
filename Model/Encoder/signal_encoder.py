@@ -43,21 +43,27 @@ class SignalEncoder(VisionTransformer):
             return_attention=return_attention
         )
 
-    def SeperateContext(self, attn_scores: torch.Tensor, context_ratio: float=0.5) -> torch.Tensor:
-        """Seperate attention scores into context and non-context parts.
+    def SeperateContext(self, x: torch.Tensor, attn_scores: torch.Tensor, context_ratio: float=0.5) -> torch.Tensor:
+        """Seperate attention scores into context and non-context parts. Inspired by https://arxiv.org/pdf/2311.03035v2
         Args:
+            x: Tensor of shape [B, N, D], input patch embeddings.
             attn_scores: Tensor of shape [B, H, N, N], attention scores.
             context_ratio: float, ratio of context patches to total patches.
         Returns:
             context_mask: Tensor of shape [B, M], binary mask indicating context patches.
             non_context_mask: Tensor of shape [B, N-M], binary mask indicating non-context patches.
         """
-        B, N, _ = attn_scores.shape
-        # Compute the mean attention score for each node
-        mean_scores = attn_scores.mean(dim=-1)  # [B, N]
-        # Determine a threshold to separate context and non-context nodes
-        threshold = mean_scores.mean(dim=-1, keepdim=True)  # [B, 1]
-        # Create binary masks based on the threshold
-        context_mask = (mean_scores >= threshold).float()  # [B, N]
-        object_mask = (mean_scores < threshold).float()   # [B, N]
-        return context_mask, object_mask
+        N = attn_scores[-1]
+        # Regeneration difficulty
+        regeneration = attn_scores.diagonal(dim1=-2, dim2=-1).mean(dim=1) # (B, N)
+        # Broadcasting ability
+        Broadcasting = (attn_scores.sum(dim=-2) - attn_scores.diagonal(dim1=-2, dim2=-1)).mean(dim=1) # (B, N)
+        # Combined score
+        combined_score = regeneration * Broadcasting  # (B, N)
+        # Determine number of context patches
+        M = int(N * context_ratio)
+        # Get top-M indices for context patches
+        non_context_scores, non_context_indices = torch.topk(combined_score, k=M, largest=True, dim=-1)  # (B, M)
+        # get non-context patches
+        non_context_patches = torch.gather(x, dim=1, index=non_context_indices.unsqueeze(-1).expand(-1, -1, x.size(-1))) # (B, M, D)
+        return non_context_scores, non_context_patches

@@ -162,7 +162,9 @@ class Block(nn.Module):
         y, attn = self.attn(self.norm1(x))
         x = x + self.drop_path(y)
         x = x + self.drop_path(self.mlp(self.norm2(x)))
-        return x if not return_attention else x, attn
+        if return_attention:
+            return x, attn
+        return x
     
 
 class PatchEmbed(nn.Module):
@@ -203,7 +205,6 @@ class VisionTransformer(nn.Module):
         init_std=0.02,
         cls_token=True,
         return_attention=False,
-        **kwargs
     ):
         super().__init__()
         self.num_features = self.embed_dim = embed_dim
@@ -293,7 +294,9 @@ class VisionTransformer(nn.Module):
         if self.norm is not None:
             x = self.norm(x)
 
-        return x if self.return_attention else x, attn
+        if self.return_attention:
+            return x, attn
+        return x
 
     def interpolate_pos_encoding(self, x, pos_embed):
         npatch = x.shape[1] - 1
