@@ -22,6 +22,8 @@ class ExperienceEncoder(SimpleViT):
         drop_path_rate: float = 0.0,
         norm_layer: Optional[torch.nn.Module] = None,
         init_std: float = 0.02,
+        cls_token: bool = True,
+        return_attention: bool = True
     ):
         super().__init__(
             img_size=img_size,
@@ -38,31 +40,22 @@ class ExperienceEncoder(SimpleViT):
             drop_path_rate=drop_path_rate,
             norm_layer=norm_layer,
             init_std=init_std,
+            cls_token=cls_token,
+            return_attention=return_attention
         )
 
-
-    def forward(
-        self,
-        memory_embeddings: Tensor
-    ) -> Tensor:
-        """
-        Forward pass through the ContextEncoder.
+    def encode_memory(self, x: Tensor, memorybank: any, k: int, remain_signal_ratio: float=0.1) -> Tensor:
+        """ Collect memory embeddings from memorybank.
         Args:
-            memory_embeddings: embeddings from memory, shape (B, M*K, D)
-            M: number of selected patches
-            K: number of most similar memory patches
+            x: Tensor of shape [B, M, D], input images.
+            memorybank: memory bank object.
+            k: number of nearest neighbors to retrieve.
+            remain_signal_ratio: float, ratio of original signal to retain.
         Returns:
-            Output embeddings, shape (B, M*K, D) or (B, M*K+1, D)
+            Tensor of shape [B, M*k, D] or [B, M*k+1, D].
         """
-        cls_token_exists = self.cls_token is not None
-        # Prepend CLS token if exists
-        if cls_token_exists:
-            cls_tokens = self.cls_token.expand(memory_embeddings.size(0), -1, -1)  # (B, 1, D)
-            memory_embeddings = torch.cat((cls_tokens, memory_embeddings), dim=1)  # (B, M*K+1, D)
-        memory_embeddings = self.pos_drop(memory_embeddings)
-        # Forward through transformer blocks
-        for blk in self.blocks:
-            memory_embeddings = blk(memory_embeddings)
-        # Normalize
-        memory_embeddings = self.norm(memory_embeddings)
-        return memory_embeddings
+        _, memory_embeddings = memorybank.recollect(x, k)  # indices: [B, M*k, D]
+        x_expanded = x.repeat_interleave(k, dim=1)  # [B, M*k, D]
+        x_expanded = memory_embeddings * (1 - remain_signal_ratio) + x_expanded * remain_signal_ratio  # [B, M*k, D]
+        x_expanded = self.forward(x_expanded)  # y: [B, M*k, D] or [B, M*k+1, D]
+        return x_expanded

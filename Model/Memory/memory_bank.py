@@ -49,18 +49,23 @@ class MemoryBank:
     def recollect(self, query: torch.Tensor, k: int) -> torch.Tensor:
         """Retrieve top-k similar embeddings from memory bank for given queries.
         Args:
-            query: Tensor of shape [M, D]
+            query: Tensor of shape [B, M, D]
             k: number of nearest neighbors to retrieve
         Returns:
-            distances: Tensor of shape [M, k]
-            indices: Tensor of shape [M, k]
+            distances: Tensor of shape [B, M, k]
+            indices: Tensor of shape [B, M, k]
         """
+        B, M, D = query.size()
+        query = query.view(B * M, D)
         if self.stored_size == 0:
             raise ValueError("Memory bank is empty. Cannot perform recollection.")
         # Update FAISS index with current memory
         self.recollector.update_index(self.memory[:self.stored_size])
         distances, indices = self.recollector.recollect(query.to(self.device), k)
-        return distances, indices
+        distances = distances.view(B, M*k)
+        indices = indices.view(B, M*k)
+        closest_embeddings = self.memory[indices]  # [B, M*k, D]
+        return distances, closest_embeddings
 
     def reset(self) -> None:
         """Reset memory bank (Preallocate contiguous memory).
