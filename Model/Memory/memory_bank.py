@@ -1,5 +1,5 @@
 import torch
-from Model.Memory.recollecter_faiss import RecollectFaiss
+from Memory.recollect_faiss import RecollectFaiss
 
 
 class MemoryBank:
