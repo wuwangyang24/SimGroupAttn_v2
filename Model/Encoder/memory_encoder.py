@@ -70,7 +70,7 @@ class MemoryEncoder(SimpleViT):
             k: number of nearest neighbors to retrieve.
             remain_signal_ratio: float, ratio of original signal to retain.
         Returns:
-            Tensor of shape [B, M*k, D] or [B, M*k+1, D].
+            Tensor of shape [B, M*k, D].
         """
         _, memory_embeddings = memorybank.recollect(x, k)  # indices: [B, M*k, D]
         x_expanded = x.repeat_interleave(k, dim=1)  # [B, M*k, D]
