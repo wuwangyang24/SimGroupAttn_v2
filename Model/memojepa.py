@@ -22,11 +22,11 @@ class MemoryJepaEncoder:
         )
         self.loss_fn = torch.nn.CosineSimilarity(dim=-1)
 
-    def forward(self, x: any, k: int, remain_signal_ratio: float=0.1) -> dict:
+    def forward(self, x: any, num_neighbors: int, remain_signal_ratio: float=0.1, return_all: bool = False) -> dict:
         """ Forward function.
         Args:
             x: Tensor of shape [B, 3, W, H], input images.
-            k: number of nearest neighbors to retrieve.
+            num_neighbors: number of nearest neighbors to retrieve.
             remain_signal_ratio: float, ratio of original signal to retain.
         Returns:
             loss: float, loss between cls_signal and cls_memory.
@@ -36,8 +36,10 @@ class MemoryJepaEncoder:
         # update memory bank
         self.memory_bank.memorize(non_context_embeddings, nonnon_context_scores, mode="replow")
         # Encode with memory encoder
-        y = self.memory_encoder(non_context_embeddings, self.memory_bank, k, remain_signal_ratio)  # [B, M*k, D] or [B, M*k+1, D]
+        memory_embeddings = self.memory_encoder(non_context_embeddings, self.memory_bank, num_neighbors, remain_signal_ratio)  # [B, M*k, D] or [B, M*k+1, D]
         # calculate loss
-        cls_memory = y[:, 0]  # [B, D]
+        cls_memory = memory_embeddings[:, 0]  # [B, D]
         loss = self.loss_fn(cls_signal, cls_memory).mean()
-        return {'cls': cls_memory, 'loss': loss}
+        if return_all:
+            return {'embeddings': memory_embeddings, 'loss': loss}
+        return {'cls_embeddings': cls_memory, 'loss': loss}
