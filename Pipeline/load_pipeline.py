@@ -88,30 +88,47 @@ def load_ppl(ppl_config: Any) -> Any:
         raise ValueError("ppl_config must have a 'name' attribute (e.g. 'ijepa', 'mae', 'simmim', 'data2vec')")
     
     lname = name.lower()
-    
-    if lname not in _transformer_classes:
-        raise ValueError(f"Unknown model name: {name}")
-    
-    # Validate required fields
-    missing = [f for f in _required_fields[lname] if not hasattr(ppl_config, f)]
-    if missing:
-        raise ValueError(f"Missing required {lname} config fields: {missing}")
-    
-    # Import transformers and fetch classes
-    try:
-        transformers = importlib.import_module("transformers")
-        cfg_class_name, model_class_name = _transformer_classes[lname]
-        ConfigClass = getattr(transformers, cfg_class_name)
-        ModelClass = getattr(transformers, model_class_name)
-    except Exception as e:
-        raise ImportError(
-            f"The 'transformers' package is required for the '{name}' backend. {e}"
-        ) from e
-    
-    # Map ppl_config -> config kwargs
-    params = {cfg_arg: getattr(ppl_config, ppl_attr)
-              for cfg_arg, ppl_attr in _param_map[lname].items()}
-    
-    cfg = ConfigClass(**params)
-    model = ModelClass(cfg)
+
+    if lname != "memojepa":      
+        if lname not in _transformer_classes:
+            raise ValueError(f"Unknown model name: {name}")
+        # Validate required fields
+        missing = [f for f in _required_fields[lname] if not hasattr(ppl_config, f)]
+        if missing:
+            raise ValueError(f"Missing required {lname} config fields: {missing}")
+        # Import transformers and fetch classes
+        try:
+            transformers = importlib.import_module("transformers")
+            cfg_class_name, model_class_name = _transformer_classes[lname]
+            ConfigClass = getattr(transformers, cfg_class_name)
+            ModelClass = getattr(transformers, model_class_name)
+        except Exception as e:
+            raise ImportError(
+                f"The 'transformers' package is required for the '{name}' backend. {e}"
+            ) from e
+        # Map ppl_config -> config kwargs
+        params = {cfg_arg: getattr(ppl_config, ppl_attr)
+                for cfg_arg, ppl_attr in _param_map[lname].items()}
+        cfg = ConfigClass(**params)
+        model = ModelClass(cfg)
+    else:
+        from Model.Encoder.memory_encoder import MemoryJepaEncoder
+        model = MemoryJepaEncoder(
+            img_size=ppl_config.img_size,
+            patch_size=ppl_config.patch_size,
+            in_chans=ppl_config.in_chans,
+            embed_dim=ppl_config.embed_dim,
+            depth=ppl_config.layers,
+            num_heads=ppl_config.heads,
+            mlp_ratio=getattr(ppl_config, "mlp_ratio", 4.0),
+            qkv_bias=getattr(ppl_config, "qkv_bias", True),
+            qk_scale=getattr(ppl_config, "qk_scale", None),
+            drop_rate=getattr(ppl_config, "drop_rate", 0.0),
+            attn_drop_rate=getattr(ppl_config, "attn_drop_rate", 0.0),
+            drop_path_rate=getattr(ppl_config, "drop_path_rate", 0.0),
+            norm_layer=None,
+            init_std=getattr(ppl_config, "init_std", 0.02),
+            cls_token=getattr(ppl_config, "cls_token", True),
+            return_attention=getattr(ppl_config, "return_attention", True)
+        )
     return model

@@ -43,7 +43,7 @@ class SignalEncoder(VisionTransformer):
             return_attention=return_attention
         )
 
-    def SeperateContext(self, x: torch.Tensor, attn_scores: torch.Tensor, context_ratio: float=0.5) -> torch.Tensor:
+    def SeperateContext(self, x: torch.Tensor, context_ratio: float=0.5) -> torch.Tensor:
         """Seperate attention scores into context and non-context parts. Inspired by https://arxiv.org/pdf/2311.03035v2
         Args:
             x: Tensor of shape [B, N, D], input patch embeddings.
@@ -53,7 +53,8 @@ class SignalEncoder(VisionTransformer):
             non_context_scores: Tensor of shape [B, M], attention scores for non-context patches.
             non_context_patches: Tensor of shape [B, M, D], non-context patch embeddings.
         """
-        N = attn_scores[-1]
+        x, attn_scores = self.forward(x)
+        N = attn_scores.shape[-1]
         # Regeneration difficulty
         regeneration = attn_scores.diagonal(dim1=-2, dim2=-1).mean(dim=1) # (B, N)
         # Broadcasting ability
@@ -66,4 +67,4 @@ class SignalEncoder(VisionTransformer):
         non_context_scores, non_context_indices = torch.topk(combined_score, k=M, largest=True, dim=-1)  # (B, M)
         # get non-context patches
         non_context_patches = torch.gather(x, dim=1, index=non_context_indices.unsqueeze(-1).expand(-1, -1, x.size(-1))) # (B, M, D)
-        return non_context_scores, non_context_patches
+        return x[:, 0], non_context_scores, non_context_patches
