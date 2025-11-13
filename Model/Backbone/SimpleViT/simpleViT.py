@@ -215,17 +215,17 @@ class VisionTransformer(nn.Module):
             patch_size=patch_size,
             in_chans=in_chans,
             embed_dim=embed_dim)
-        num_patches = self.patch_embed.num_patches
+        self.num_patches = self.patch_embed.num_patches
         # class token and position embedding
         if cls_token:
             self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
-            self.pos_embed = nn.Parameter(torch.zeros(1, num_patches + 1, embed_dim), requires_grad=False)
+            self.pos_embed = nn.Parameter(torch.zeros(1,  self.num_patches + 1, embed_dim), requires_grad=False)
         else:
             self.cls_token = None
-            self.pos_embed = nn.Parameter(torch.zeros(1, num_patches, embed_dim), requires_grad=False)
+            self.pos_embed = nn.Parameter(torch.zeros(1,  self.num_patches, embed_dim), requires_grad=False)
         pos_embed = get_2d_sincos_pos_embed(
             embed_dim=embed_dim,
-            grid_size=int(num_patches ** 0.5),
+            grid_size=int( self.num_patches ** 0.5),
             cls_token=cls_token
         )
         self.pos_embed.data.copy_(torch.from_numpy(pos_embed).float().unsqueeze(0))
@@ -270,15 +270,17 @@ class VisionTransformer(nn.Module):
                 masks = [masks]
 
         # -- patchify x
-        x = self.patch_embed(x)
+        if self.patch_embed is not None:
+            x = self.patch_embed(x)
         B, N, D = x.shape
 
         # -- add positional embedding to x
         if self.cls_token is not None:
             cls_tokens = self.cls_token.expand(B, -1, -1)
             x = torch.cat((cls_tokens, x), dim=1)
-        pos_embed = self.interpolate_pos_encoding(x, self.pos_embed)
-        x = x + pos_embed
+        if self.pos_embed is not None:
+            pos_embed = self.interpolate_pos_encoding(x, self.pos_embed)
+            x = x + pos_embed
 
         # -- mask x
         if masks is not None:

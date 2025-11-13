@@ -1,11 +1,12 @@
 import torch
+import torch.nn as nn
 from torch import Tensor
 from Backbone.SimpleViT import SimpleViT
 from typing import Optional
 
 
-class ExperienceEncoder(SimpleViT):
-    """ Context Encoder based on SimpleViT architecture."""
+class MemoryEncoder(SimpleViT):
+    """ memory Encoder based on SimpleViT architecture."""
     def __init__(
         self,
         img_size: list = [224],
@@ -43,8 +44,25 @@ class ExperienceEncoder(SimpleViT):
             cls_token=cls_token,
             return_attention=return_attention
         )
+        self.patch_embed = None # Bypass patch embedding
+        self.pos_embed = None # Bypass position embedding
 
-    def encode_memory(self, x: Tensor, memorybank: any, k: int, remain_signal_ratio: float=0.1) -> Tensor:
+    # override
+    def forward(self, x: Tensor, memorybank: any, k: int, remain_signal_ratio: float=0.1) -> Tensor:
+        """ Forward function.
+        Args:
+            x: Tensor of shape [B, M, D], input images.
+            k: number of nearest neighbors to retrieve.
+            remain_signal_ratio: float, ratio of original signal to retain.
+        Returns:
+            Tensor of shape [B, M*k, D] or [B, M*k+1, D].
+        """
+        memory_embedings = self.retrieve_memory(x, memorybank, k, remain_signal_ratio)  # [B, M*k, D] or [B, M*k+1, D]
+        y = super().forward(memory_embedings)  # [B, M*k, D] or [B, M*k+1, D]
+        return y
+
+
+    def retrieve_memory(self, x: Tensor, memorybank: any, k: int, remain_signal_ratio: float=0.1) -> Tensor:
         """ Collect memory embeddings from memorybank.
         Args:
             x: Tensor of shape [B, M, D], input images.
@@ -57,5 +75,4 @@ class ExperienceEncoder(SimpleViT):
         _, memory_embeddings = memorybank.recollect(x, k)  # indices: [B, M*k, D]
         x_expanded = x.repeat_interleave(k, dim=1)  # [B, M*k, D]
         x_expanded = memory_embeddings * (1 - remain_signal_ratio) + x_expanded * remain_signal_ratio  # [B, M*k, D]
-        x_expanded = self.forward(x_expanded)  # y: [B, M*k, D] or [B, M*k+1, D]
         return x_expanded
