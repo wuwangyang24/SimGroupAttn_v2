@@ -57,8 +57,9 @@ class MemoryEncoder(SimpleViT):
         Returns:
             Tensor of shape [B, M*k, D] or [B, M*k+1, D].
         """
-        memory_embedings = self.retrieve_memory(x, memorybank, k, remain_signal_ratio)  # [B, M*k, D] or [B, M*k+1, D]
-        y = super().forward(memory_embedings)  # [B, M*k, D] or [B, M*k+1, D]
+        if k > 0:
+            x = self.retrieve_memory(x, memorybank, k, remain_signal_ratio)  # [B, M*k, D] or [B, M*k+1, D]
+        y = super().forward(x)  # [B, M*k, D] or [B, M*k+1, D]
         return y
 
 

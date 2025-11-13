@@ -22,7 +22,7 @@ class MemoryJepaEncoder:
         )
         self.loss_fn = torch.nn.CosineSimilarity(dim=-1)
 
-    def forward(self, x: any, k: int, remain_signal_ratio: float=0.1) -> any:
+    def forward(self, x: any, k: int, remain_signal_ratio: float=0.1) -> dict:
         """ Forward function.
         Args:
             x: Tensor of shape [B, M, D], input images.
@@ -33,7 +33,7 @@ class MemoryJepaEncoder:
             cls_memory: cls embedding of shape [B, 1, D].
         """
         cls_signal, non_context_embeddings = self.signal_encoder.SeperateContext(x)  # [B, 1, D],  [B, M, D]
-        # If memory bank is empty, return cls token directly
+        # If memory bank is empty, skip memory retrieval
         if self.memory_bank.stored_size == 0:
             k = 0 # no memory retrieval
             remain_signal_ratio = 1.0 # keep all signal
