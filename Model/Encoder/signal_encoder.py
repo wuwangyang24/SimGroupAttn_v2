@@ -46,7 +46,7 @@ class SignalEncoder(VisionTransformer):
     def SeperateContext(self, x: torch.Tensor, context_ratio: float=0.5) -> torch.Tensor:
         """Seperate attention scores into context and non-context parts. Inspired by https://arxiv.org/pdf/2311.03035v2
         Args:
-            x: Tensor of shape [B, N, D], input patch embeddings.
+            x: Tensor of shape [B, 3, W, H], input images.
             attn_scores: Tensor of shape [B, H, N, N], attention scores.
             context_ratio: float, ratio of context patches to total patches.
         Returns:

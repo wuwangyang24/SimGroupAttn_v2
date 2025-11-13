@@ -25,22 +25,19 @@ class MemoryJepaEncoder:
     def forward(self, x: any, k: int, remain_signal_ratio: float=0.1) -> dict:
         """ Forward function.
         Args:
-            x: Tensor of shape [B, M, D], input images.
+            x: Tensor of shape [B, 3, W, H], input images.
             k: number of nearest neighbors to retrieve.
             remain_signal_ratio: float, ratio of original signal to retain.
         Returns:
             loss: float, loss between cls_signal and cls_memory.
             cls_memory: cls embedding of shape [B, 1, D].
         """
-        cls_signal, non_context_embeddings = self.signal_encoder.SeperateContext(x)  # [B, 1, D],  [B, M, D]
-        # If memory bank is empty, skip memory retrieval
-        if self.memory_bank.stored_size == 0:
-            k = 0 # no memory retrieval
-            remain_signal_ratio = 1.0 # keep all signal
-        # Encode with memory encoder
-        y = self.memory_encoder(non_context_embeddings, self.memorybank, k, remain_signal_ratio)  # [B, M*k, D] or [B, M*k+1, D]
-        cls_memory = y[:, 0]  # [B, D]
-        loss = self.loss_fn(cls_signal, cls_memory)
+        cls_signal, nonnon_context_scores, non_context_embeddings = self.signal_encoder.SeperateContext(x)  # [B, 1, D],  [B, M, D]
         # update memory bank
-        self.memory_bank.memorize(non_context_embeddings, mode="random")
+        self.memory_bank.memorize(non_context_embeddings, nonnon_context_scores, mode="replow")
+        # Encode with memory encoder
+        y = self.memory_encoder(non_context_embeddings, self.memory_bank, k, remain_signal_ratio)  # [B, M*k, D] or [B, M*k+1, D]
+        # calculate loss
+        cls_memory = y[:, 0]  # [B, D]
+        loss = self.loss_fn(cls_signal, cls_memory).mean()
         return {'cls': cls_memory, 'loss': loss}

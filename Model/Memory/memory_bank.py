@@ -18,8 +18,8 @@ class MemoryBank:
         """
         Add new embeddings to the memory bank.
         Args:
-            items: Tensor of shape [N, D]
-            scores: Tensor of shape [N]
+            items: Tensor of shape [B, D]
+            scores: Tensor of shape [B]
             mode: "random" (replace random items) or "replow" (replace lowest-score items)
         """
         assert mode in {"random", "replow"}, f"Invalid mode: {mode}"
