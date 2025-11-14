@@ -2,7 +2,7 @@ import os
 import argparse
 from omegaconf import OmegaConf
 import wandb
-from Framework.traniner import Trainer
+from Pipeline.traniner import Trainer
 from Data.dataloader import ImageDataModule
 
 def load_config(config_path: str) -> dict:
