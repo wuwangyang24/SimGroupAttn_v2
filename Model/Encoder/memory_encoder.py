@@ -49,7 +49,7 @@ class MemoryEncoder(SimpleViT):
 
     # override
     def forward(self, x: Tensor, memorybank: any, k: int, remain_signal_ratio: float=0.1) -> Tensor:
-        """ Forward function.
+        """ Forward pass with memory recollection.
         Args:
             x: Tensor of shape [B, M, D], input images.
             k: number of nearest neighbors to retrieve.
@@ -58,22 +58,8 @@ class MemoryEncoder(SimpleViT):
             Tensor of shape [B, M*k, D] or [B, M*k+1, D].
         """
         if k > 0:
-            x = self.retrieve_memory(x, memorybank, k, remain_signal_ratio)  # [B, M*k, D] or [B, M*k+1, D]
-        y = super().forward(x)  # [B, M*k, D] or [B, M*k+1, D]
-        return y
-
-
-    def retrieve_memory(self, x: Tensor, memorybank: any, k: int, remain_signal_ratio: float=0.1) -> Tensor:
-        """ Collect memory embeddings from memorybank.
-        Args:
-            x: Tensor of shape [B, M, D], input images.
-            memorybank: memory bank object.
-            k: number of nearest neighbors to retrieve.
-            remain_signal_ratio: float, ratio of original signal to retain.
-        Returns:
-            Tensor of shape [B, M*k, D].
-        """
-        _, memory_embeddings = memorybank.recollect(x, k)  # indices: [B, M*k, D]
-        x_expanded = x.repeat_interleave(k, dim=1)  # [B, M*k, D]
-        x_expanded = memory_embeddings * (1 - remain_signal_ratio) + x_expanded * remain_signal_ratio  # [B, M*k, D]
-        return x_expanded
+            _, memory_embeddings = memorybank.recollect(x, k)  # indices: [B, M*k, D]
+            x = x.repeat_interleave(k, dim=1)  # [B, M*k, D]
+            x = memory_embeddings * (1 - remain_signal_ratio) + x * remain_signal_ratio  # [B, M*k, D]
+        x = super().forward(x)  # [B, M*k, D] or [B, M*k+1, D]
+        return x
