@@ -1,4 +1,5 @@
 import torch
+import wandb
 import lightning as pl
 import matplotlib.pyplot as plt
 from torch.optim.lr_scheduler import SequentialLR, LinearLR, CosineAnnealingLR
@@ -35,7 +36,7 @@ class LightningModel(pl.LightningModule):
         return loss
 
     def validation_step(self, batch: Any, batch_idx: int) -> Dict[str, Any]:
-        # --- Forward pass ---
+        # Forward pass
         outputs = self.ppl.forward(batch, return_attn=True)
         loss = outputs.loss
         attn_scores = outputs.get('attn_scores', None)
@@ -47,15 +48,16 @@ class LightningModel(pl.LightningModule):
             logger=True,
             sync_dist=True,
         )
-        # --- Log first N images and attention maps ---
+        # --- Log first N images and attention maps to WandB ---
         N = 8  # number of images to log
         if attn_scores is not None and batch_idx == 0:  # only first batch
-            images = batch["image"]  # shape [B, C, H, W], adjust key if different
+            images = batch["image"]  # shape [B, C, H, W]
             batch_size = images.shape[0]
             N = min(N, batch_size)
             # CLS token attention to patches
             cls_attn = attn_scores[:, :, 0, 1:]  # [B, heads, tokens]
             cls_attn = cls_attn.mean(dim=1)      # average over heads, shape [B, tokens]
+            # Compute patch grid size dynamically
             patch_size = int(cls_attn.shape[1] ** 0.5)
             cls_attn_map = cls_attn.reshape(batch_size, patch_size, patch_size)  # [B, H, W]
             cls_attn_map = torch.nn.functional.interpolate(
@@ -64,7 +66,7 @@ class LightningModel(pl.LightningModule):
                 mode='bilinear',
                 align_corners=False
             )
-            # Normalize attention maps to 0-1
+            # Normalize attention maps
             cls_attn_map = (cls_attn_map - cls_attn_map.min(dim=(1,2,3), keepdim=True)[0]) / (
                         cls_attn_map.max(dim=(1,2,3), keepdim=True)[0] - cls_attn_map.min(dim=(1,2,3), keepdim=True)[0] + 1e-8)
             for i in range(N):
@@ -76,17 +78,13 @@ class LightningModel(pl.LightningModule):
                 attn_np = attn.squeeze(0).numpy()  # [H, W]
                 # Overlay attention on image
                 overlay = 0.6 * img_np + 0.4 * plt.cm.jet(attn_np)[..., :3]
-                # Log to TensorBoard
-                self.logger.experiment.add_image(
-                    f"val_image_{i}",
-                    torch.tensor(img_np).permute(2, 0, 1),
-                    self.current_epoch
-                )
-                self.logger.experiment.add_image(
-                    f"val_attention_overlay_{i}",
-                    torch.tensor(overlay).permute(2, 0, 1),
-                    self.current_epoch
-                )
+                overlay = overlay.clip(0, 1)
+                # Log to WandB
+                self.logger.experiment.log({
+                    f"val_image_{i}": wandb.Image((img_np * 255).astype("uint8")),
+                    f"val_attention_overlay_{i}": wandb.Image((overlay * 255).astype("uint8")),
+                    "epoch": self.current_epoch
+                })
         return {"val_loss": loss}
 
 
