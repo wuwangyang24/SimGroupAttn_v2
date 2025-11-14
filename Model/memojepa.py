@@ -21,9 +21,24 @@ class MemoryJepaEncoder:
             device=memory_bank_cfg.get("memory_device", 'gpu'),
             dtype=memory_bank_cfg.get("memory_dtype", torch.float16)
         )
-        self.loss_fn = torch.nn.CosineSimilarity(dim=-1)
+        self.loss_fn = self._loss_fn(cfg.get("loss_type", "cosine"))
 
-    def forward(self, x: any, num_neighbors: int=5, remain_signal_ratio: float=0.1, return_all: bool = False) -> dict:
+    def _loss_fn(self, loss_type: str) -> any:
+        if loss_type == 'cosine':
+            return torch.nn.CosineSimilarity(dim=-1)
+        elif loss_type == 'mse':
+            return torch.nn.MSELoss()
+        elif loss_type == 'ce':
+            return torch.nn.CrossEntropyLoss()
+        else:
+            raise NotImplementedError(f"Loss type {loss_type} not implemented.")
+
+    def forward(self, 
+                x: any, 
+                num_neighbors: int=5, 
+                remain_signal_ratio: float=0.1, 
+                memory_mode: str='random', 
+                return_all: bool = False) -> dict:
         """
         Args:
             x: Tensor of shape [B, 3, W, H], input images.
@@ -35,7 +50,7 @@ class MemoryJepaEncoder:
         """
         cls_signal, nonnon_context_scores, non_context_embeddings = self.signal_encoder.SeperateContext(x)  # [B, 1, D],  [B, M, D]
         # update memory bank
-        self.memory_bank.memorize(non_context_embeddings, nonnon_context_scores, mode="replow")
+        self.memory_bank.memorize(non_context_embeddings, nonnon_context_scores, mode=memory_mode)
         # Encode with memory encoder
         memory_embeddings = self.memory_encoder(non_context_embeddings, self.memory_bank, num_neighbors, remain_signal_ratio)  # [B, M*k, D] or [B, M*k+1, D]
         # calculate loss
