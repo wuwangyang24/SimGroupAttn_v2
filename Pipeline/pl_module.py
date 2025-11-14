@@ -6,13 +6,13 @@ from typing import Any, Optional, Sequence, Dict
 
 class LightningModel(pl.LightningModule):
 
-    def __init__(self, ppl: Optional[Sequence[Any]], train_config: Any) -> None:
+    def __init__(self, ppl: Optional[Sequence[Any]], config: Any) -> None:
         super().__init__()
         self.save_hyperparameters(ignore=['ppl'])
         self.ppl = ppl
         # Extract optimizer configuration
-        optimizer_config = train_config.optimizer
-        self.max_epochs = train_config.epochs
+        optimizer_config = config.optimizer
+        self.max_epochs = config.training.max_epochs
         self.lr = optimizer_config.learning_rate
         self.beta1 = optimizer_config.beta1
         self.beta2 = optimizer_config.beta2
