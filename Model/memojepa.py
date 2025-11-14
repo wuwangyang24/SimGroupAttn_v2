@@ -16,8 +16,7 @@ class MemoryJepa(torch.nn.Module):
         self.memory_bank = MemoryBank(
             capacity=memory_bank_cfg.get("memory_capacity", 10000),
             embed_dim=memory_bank_cfg.get("embed_dim", 768),
-            device=memory_bank_cfg.get("memory_device", 'gpu'),
-            dtype=memory_bank_cfg.get("memory_dtype", torch.float16)
+            device=memory_bank_cfg.get("memory_device", 'gpu')
         )
         self.loss_fn = self._loss_fn(cfg.get("loss_type", "cosine"))
 

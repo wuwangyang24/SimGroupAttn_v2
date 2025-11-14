@@ -1,4 +1,5 @@
 import torch
+import torch.nn as nn
 from typing import Optional
 from Backbone.SimpleViT.simpleViT import VisionTransformer
 
@@ -19,7 +20,7 @@ class SignalEncoder(VisionTransformer):
         drop_rate: float = 0.0,
         attn_drop_rate: float = 0.0,
         drop_path_rate: float = 0.0,
-        norm_layer: Optional[torch.nn.Module] = None,
+        norm_layer: Optional[torch.nn.Module] = nn.LayerNorm,
         init_std: float = 0.02,
         cls_token: bool = True,
         return_attention: bool = True

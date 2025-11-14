@@ -1,20 +1,25 @@
 import torch
-from recollect_faiss import RecollectFaiss
+from .recollect_faiss import RecollectFaiss
 
 
 class MemoryBank:
     """A fixed-size memory bank for storing embeddings."""
-    def __init__(self, capacity: int, embed_dim: int, device='gpu', dtype=torch.float16) -> None:
+    def __init__(self, capacity: int, embed_dim: int,
+                 device="cuda:0", dtype=torch.float32) -> None:
         self.capacity = capacity
         self.embed_dim = embed_dim
         self.device = torch.device(device)
         self.dtype = dtype
         self.memory, self.scores, self.stored_size = self.reset()
-        # initialize recollect module
         self.recollector = RecollectFaiss(embed_dim, device=device)
 
     @torch.no_grad()
-    def memorize(self, items: torch.Tensor, scores: torch.Tensor = None, mode: str = "random") -> None:
+    def memorize(
+        self,
+        items: torch.Tensor,
+        scores: torch.Tensor | None = None,
+        mode: str = "random",
+    ) -> None:
         """
         Add new embeddings to the memory bank.
         Args:
@@ -23,37 +28,55 @@ class MemoryBank:
             mode: "random" (replace random items) or "replow" (replace lowest-score items)
         """
         assert mode in {"random", "replow"}, f"Invalid mode: {mode}"
-        items = items.clone().to(self.device, self.dtype)
-        # --- Handle None scores ---
+
+        # --------- Fast device / dtype handling ---------
+        # Avoid clone unless we actually need to move / cast
+        if items.device != self.device or items.dtype != self.dtype:
+            items = items.to(device=self.device, dtype=self.dtype, non_blocking=True)
+        else:
+            items = items.detach()  # break graph, but no new allocation
+
+        B = items.size(0)
+        if B == 0:
+            return
+
         if scores is None:
-            # fill all new entries with zero scores
-            scores = torch.zeros(items.size(0), device=self.device, dtype=self.dtype)
-            # replow cannot function without scores → fallback to random
+            # If no scores, just use zeros; replow can't work -> fall back to random
+            scores = torch.zeros(B, device=self.device, dtype=self.dtype)
             if mode == "replow":
                 mode = "random"
         else:
-            scores = scores.clone().to(self.device, self.dtype)
-        n = items.size(0)
-        # fill available space first
-        if self.stored_size < self.capacity:
-            fill = min(self.capacity - self.stored_size, n)
+            if scores.device != self.device or scores.dtype != self.dtype:
+                scores = scores.to(device=self.device, dtype=self.dtype, non_blocking=True)
+            else:
+                scores = scores.detach()
+
+        # --------- Fill free space first ---------
+        free = self.capacity - self.stored_size
+        if free > 0:
+            fill = min(free, B)
             end = self.stored_size + fill
             self.memory[self.stored_size:end].copy_(items[:fill])
             self.scores[self.stored_size:end].copy_(scores[:fill])
             self.stored_size = end
-            if fill == n:
+            if fill == B:
+                # everything fit into free space
                 return
+            # Otherwise, we still have overflow to handle
             items = items[fill:]
             scores = scores[fill:]
-        # overflow handling
-        overflow = items.size(0)
+            B = items.size(0)  # number of overflow items
+        # --------- Overflow: memory is full here ---------
+        # B > 0 and self.stored_size == self.capacity
         if mode == "random":
-            idx = torch.randint(0, self.capacity, (overflow,), device=self.device)
+            # random replacement
+            idx = torch.randint(self.capacity, (B,), device=self.device)
         else:  # "replow"
-            _, idx = torch.topk(self.scores, overflow, largest=False)
+            # Replace the B lowest-score entries
+            # (O(capacity log B); if this is a bottleneck, we can discuss better schemes)
+            _, idx = torch.topk(self.scores, k=B, largest=False)
         self.memory[idx].copy_(items)
         self.scores[idx].copy_(scores)
-
 
     def recollect(self, query: torch.Tensor, k: int) -> torch.Tensor:
         """Retrieve top-k similar embeddings from memory bank for given queries.
@@ -61,8 +84,7 @@ class MemoryBank:
             query: Tensor of shape [B, M, D]
             k: number of nearest neighbors to retrieve
         Returns:
-            distances: Tensor of shape [B, M, k]
-            indices: Tensor of shape [B, M, k]
+            neighbor_embeddings: Tensor of shape [B, M*k, D]
         """
         B, M, D = query.size()
         query = query.view(B * M, D)
@@ -70,24 +92,21 @@ class MemoryBank:
             raise ValueError("Memory bank is empty. Cannot perform recollection.")
         # Update FAISS index with current memory
         self.recollector.update_index(self.memory[:self.stored_size])
-        distances, indices = self.recollector.recollect(query.to(self.device), k) # [B*M, k]
-        distances = distances.view(B, M*k)
-        indices = indices.view(B, M*k)
+        distances, indices = self.recollector.recollect(query.to(self.device), k)  # [B*M, k]
+        indices = indices.view(B, M * k)
         neighbor_embeddings = self.memory[indices]  # [B, M*k, D]
         return neighbor_embeddings
 
-    def reset(self) -> None:
-        """Reset memory bank (Preallocate contiguous memory).
-         Returns:
-             memory: Tensor of shape [capacity, embed_dim]
-             scores: Tensor of shape [capacity]
-             stored_size: int
-         """
-        self.memory = torch.empty((self.capacity, self.embed_dim), device=self.device, dtype=self.dtype)
+    def reset(self):
+        """Reset memory bank (preallocate contiguous memory)."""
+        self.memory = torch.empty(
+            (self.capacity, self.embed_dim),
+            device=self.device,
+            dtype=self.dtype,
+        )
         self.scores = torch.empty(self.capacity, device=self.device, dtype=self.dtype)
         self.stored_size = 0
         return self.memory, self.scores, self.stored_size
 
     def get_memory(self) -> torch.Tensor:
-        """Return the valid part of the memory bank."""
         return self.memory[:self.stored_size]

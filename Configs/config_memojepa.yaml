@@ -11,7 +11,6 @@ signal_encoder:
   drop_rate: 0.0
   attn_drop_rate: 0.0
   drop_path_rate: 0.0
-  norm_layer: null
   init_std: 0.02
   cls_token: true
   return_attention: true
@@ -26,7 +25,6 @@ memory_encoder:
   drop_rate: 0.0
   attn_drop_rate: 0.0
   drop_path_rate: 0.0
-  norm_layer: null
   init_std: 0.02
   cls_token: true
   return_attention: true
@@ -35,7 +33,6 @@ memory_bank:
   memory_capacity: 10000
   embed_dim: 768
   memory_device: "cuda"
-  memory_dtype: "float16"
 
 hyperparameters:
   context_ratio: 0.5

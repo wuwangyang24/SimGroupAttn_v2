@@ -23,3 +23,5 @@ black
 isort
 mypy
 pre-commit
+
+# conda install -c pytorch -c nvidia -c conda-forge "faiss-gpu>=1.7.4,<1.10" "cudatoolkit>=11.7,<12"
