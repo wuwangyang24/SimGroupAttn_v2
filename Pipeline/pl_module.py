@@ -3,7 +3,7 @@ import wandb
 import lightning as pl
 import matplotlib.pyplot as plt
 from torch.optim.lr_scheduler import SequentialLR, LinearLR, CosineAnnealingLR
-from typing import Any, Optional, Sequence, Dict
+from typing import Any, Optional, Dict
 
 
 class LightningModel(pl.LightningModule):
