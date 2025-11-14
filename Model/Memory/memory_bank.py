@@ -1,5 +1,5 @@
 import torch
-from Memory.recollect_faiss import RecollectFaiss
+from recollect_faiss import RecollectFaiss
 
 
 class MemoryBank:
@@ -61,7 +61,7 @@ class MemoryBank:
             raise ValueError("Memory bank is empty. Cannot perform recollection.")
         # Update FAISS index with current memory
         self.recollector.update_index(self.memory[:self.stored_size])
-        distances, indices = self.recollector.recollect(query.to(self.device), k)
+        distances, indices = self.recollector.recollect(query.to(self.device), k) # [B*M, k]
         distances = distances.view(B, M*k)
         indices = indices.view(B, M*k)
         closest_embeddings = self.memory[indices]  # [B, M*k, D]

@@ -19,7 +19,7 @@ def mock_recollector():
 @pytest.fixture
 def memory_bank(mock_recollector):
     """Create a small memory bank for testing."""
-    with patch("Model.Memory.memory_bank.RecollectFaiss", return_value=mock_recollector):
+    with patch("memory_bank.RecollectFaiss", return_value=mock_recollector):
         mb = MemoryBank(capacity=10, embed_dim=4, device="cpu", dtype=torch.float32)
     return mb
 
