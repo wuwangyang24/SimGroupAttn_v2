@@ -23,7 +23,7 @@ class LightningModel(pl.LightningModule):
         self.warmup_epochs = optimizer_config.warmup_epochs
         self.start_factor = optimizer_config.start_factor
         
-    def training_step(self, batch: Any, batch_idx: int) -> Any:
+    def training_step(self, batch: torch.Tensor, batch_idx: int) -> Any:
         loss = self.ppl(batch).loss
         self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         # Read current LR from trainer's optimizer (cheap) and log as scalar
@@ -35,7 +35,7 @@ class LightningModel(pl.LightningModule):
             pass
         return loss
 
-    def validation_step(self, batch: Any, batch_idx: int) -> Dict[str, Any]:
+    def validation_step(self, batch: torch.Tensor, batch_idx: int) -> Dict[str, Any]:
         outputs = self.ppl(batch, return_attn=True)
         loss = outputs.loss
         attn_scores = outputs.get('attn_scores', None)
@@ -50,7 +50,7 @@ class LightningModel(pl.LightningModule):
         self.log_attention_maps(batch, batch_idx, attn_scores, loss)
         return {"val_loss": loss}
 
-    def log_attention_maps(self, batch: Any, batch_idx: int, attn_scores: Optional[torch.Tensor]) -> None:
+    def log_attention_maps(self, batch: torch.Tensors, batch_idx: int, attn_scores: Optional[torch.Tensor]) -> None:
         """Log attention maps overlaid on input images to WandB."""
         # Log first N images and attention maps to WandB
         N = 8  # number of images to log
