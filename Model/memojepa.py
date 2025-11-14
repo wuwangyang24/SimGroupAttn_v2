@@ -38,7 +38,9 @@ class MemoryJepa(torch.nn.Module):
                 num_neighbors: int=5, 
                 remain_signal_ratio: float=0.1, 
                 memory_mode: str='random', 
-                return_all: bool = False) -> dict:
+                return_memoembed: bool = False,
+                return_attn: bool = False
+                ) -> dict:
         """
         Args:
             x: Tensor of shape [B, 3, W, H], input images.
@@ -48,14 +50,18 @@ class MemoryJepa(torch.nn.Module):
             loss: float, loss between cls_signal and cls_memory.
             cls_memory: cls embedding of shape [B, 1, D].
         """
-        cls_signal, nonnon_context_scores, non_context_embeddings = self.signal_encoder.SeperateContext(x)  # [B, 1, D],  [B, M, D]
+        if return_attn:
+            cls_signal, non_context_scores, non_context_embeddings, attn_scores = self.signal_encoder.SeperateContext(x, return_attn=return_attn)  # [B, 1, D],  [B, M, D], [B, H, N, N]
+        else:
+            cls_signal, non_context_scores, non_context_embeddings = self.signal_encoder.SeperateContext(x)  # [B, 1, D],  [B, M, D]
+            attn_scores = None
         # update memory bank
-        self.memory_bank.memorize(non_context_embeddings, nonnon_context_scores, mode=memory_mode)
+        self.memory_bank.memorize(non_context_embeddings, non_context_scores, mode=memory_mode)
         # Encode with memory encoder
         memory_embeddings = self.memory_encoder(non_context_embeddings, self.memory_bank, num_neighbors, remain_signal_ratio)  # [B, M*k, D] or [B, M*k+1, D]
         # calculate loss
         cls_memory = memory_embeddings[:, 0]  # [B, D]
         loss = self.loss_fn(cls_signal, cls_memory)
-        if return_all:
-            return {'embeddings': memory_embeddings, 'loss': loss}
-        return {'cls_embeddings': cls_memory, 'loss': loss}
+        if return_memoembed:
+            return {'embeddings': memory_embeddings, 'loss': loss, 'attn_scores': attn_scores}
+        return {'cls_embeddings': cls_memory, 'loss': loss, 'attn_scores': attn_scores}

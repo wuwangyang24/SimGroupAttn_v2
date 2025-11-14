@@ -1,5 +1,6 @@
 import torch
 import lightning as pl
+import matplotlib.pyplot as plt
 from torch.optim.lr_scheduler import SequentialLR, LinearLR, CosineAnnealingLR
 from typing import Any, Optional, Sequence, Dict
 
@@ -34,8 +35,10 @@ class LightningModel(pl.LightningModule):
         return loss
 
     def validation_step(self, batch: Any, batch_idx: int) -> Dict[str, Any]:
-        loss = self.ppl.forward(batch).loss
-        print(loss)
+        # --- Forward pass ---
+        outputs = self.ppl.forward(batch, return_attn=True)
+        loss = outputs.loss
+        attn_scores = outputs.get('attn_scores', None)
         self.log(
             "val_loss",
             loss,
@@ -44,6 +47,46 @@ class LightningModel(pl.LightningModule):
             logger=True,
             sync_dist=True,
         )
+        # --- Log first N images and attention maps ---
+        N = 8  # number of images to log
+        if attn_scores is not None and batch_idx == 0:  # only first batch
+            images = batch["image"]  # shape [B, C, H, W], adjust key if different
+            batch_size = images.shape[0]
+            N = min(N, batch_size)
+            # CLS token attention to patches
+            cls_attn = attn_scores[:, :, 0, 1:]  # [B, heads, tokens]
+            cls_attn = cls_attn.mean(dim=1)      # average over heads, shape [B, tokens]
+            patch_size = int(cls_attn.shape[1] ** 0.5)
+            cls_attn_map = cls_attn.reshape(batch_size, patch_size, patch_size)  # [B, H, W]
+            cls_attn_map = torch.nn.functional.interpolate(
+                cls_attn_map.unsqueeze(1),  # add channel dim
+                size=(images.shape[2], images.shape[3]),  # upsample to original size
+                mode='bilinear',
+                align_corners=False
+            )
+            # Normalize attention maps to 0-1
+            cls_attn_map = (cls_attn_map - cls_attn_map.min(dim=(1,2,3), keepdim=True)[0]) / (
+                        cls_attn_map.max(dim=(1,2,3), keepdim=True)[0] - cls_attn_map.min(dim=(1,2,3), keepdim=True)[0] + 1e-8)
+            for i in range(N):
+                img = images[i].cpu()  # [C, H, W]
+                attn = cls_attn_map[i].cpu()  # [1, H, W]
+                # Convert image to [H, W, C] for overlay
+                img_np = img.permute(1, 2, 0).numpy()
+                img_np = (img_np - img_np.min()) / (img_np.max() - img_np.min())  # normalize 0-1
+                attn_np = attn.squeeze(0).numpy()  # [H, W]
+                # Overlay attention on image
+                overlay = 0.6 * img_np + 0.4 * plt.cm.jet(attn_np)[..., :3]
+                # Log to TensorBoard
+                self.logger.experiment.add_image(
+                    f"val_image_{i}",
+                    torch.tensor(img_np).permute(2, 0, 1),
+                    self.current_epoch
+                )
+                self.logger.experiment.add_image(
+                    f"val_attention_overlay_{i}",
+                    torch.tensor(overlay).permute(2, 0, 1),
+                    self.current_epoch
+                )
         return {"val_loss": loss}
 
 

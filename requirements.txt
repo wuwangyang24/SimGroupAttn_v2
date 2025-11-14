@@ -15,6 +15,7 @@ omegaconf
 
 # Image Processing
 opencv-python-headless
+matplotlib
 
 # Development Tools
 pytest

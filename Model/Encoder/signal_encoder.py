@@ -43,7 +43,7 @@ class SignalEncoder(VisionTransformer):
             return_attention=return_attention
         )
 
-    def SeperateContext(self, x: torch.Tensor, context_ratio: float=0.5) -> torch.Tensor:
+    def SeperateContext(self, x: torch.Tensor, context_ratio: float=0.5, return_attn: bool=False) -> torch.Tensor:
         """Seperate attention scores into context and non-context parts. Inspired by https://arxiv.org/pdf/2311.03035v2
         Args:
             x: Tensor of shape [B, 3, W, H], input images.
@@ -67,4 +67,6 @@ class SignalEncoder(VisionTransformer):
         non_context_scores, non_context_indices = torch.topk(combined_score, k=M, largest=True, dim=-1)  # (B, M)
         # get non-context patches
         non_context_patches = torch.gather(x, dim=1, index=non_context_indices.unsqueeze(-1).expand(-1, -1, x.size(-1))) # (B, M, D)
+        if return_attn:
+            return x[:, 0], non_context_scores.detach(), non_context_patches, attn_scores
         return x[:, 0], non_context_scores.detach(), non_context_patches
