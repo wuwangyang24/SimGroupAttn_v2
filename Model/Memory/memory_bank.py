@@ -19,12 +19,20 @@ class MemoryBank:
         Add new embeddings to the memory bank.
         Args:
             items: Tensor of shape [B, D]
-            scores: Tensor of shape [B]
+            scores: Tensor of shape [B] or None
             mode: "random" (replace random items) or "replow" (replace lowest-score items)
         """
         assert mode in {"random", "replow"}, f"Invalid mode: {mode}"
         items = items.clone().to(self.device, self.dtype)
-        scores = scores.clone().to(self.device, self.dtype)
+        # --- Handle None scores ---
+        if scores is None:
+            # fill all new entries with zero scores
+            scores = torch.zeros(items.size(0), device=self.device, dtype=self.dtype)
+            # replow cannot function without scores → fallback to random
+            if mode == "replow":
+                mode = "random"
+        else:
+            scores = scores.clone().to(self.device, self.dtype)
         n = items.size(0)
         # fill available space first
         if self.stored_size < self.capacity:
@@ -46,6 +54,7 @@ class MemoryBank:
         self.memory[idx].copy_(items)
         self.scores[idx].copy_(scores)
 
+
     def recollect(self, query: torch.Tensor, k: int) -> torch.Tensor:
         """Retrieve top-k similar embeddings from memory bank for given queries.
         Args:
@@ -64,8 +73,8 @@ class MemoryBank:
         distances, indices = self.recollector.recollect(query.to(self.device), k) # [B*M, k]
         distances = distances.view(B, M*k)
         indices = indices.view(B, M*k)
-        closest_embeddings = self.memory[indices]  # [B, M*k, D]
-        return distances, closest_embeddings
+        neighbor_embeddings = self.memory[indices]  # [B, M*k, D]
+        return neighbor_embeddings
 
     def reset(self) -> None:
         """Reset memory bank (Preallocate contiguous memory).
