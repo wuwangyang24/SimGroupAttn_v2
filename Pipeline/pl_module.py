@@ -36,7 +36,6 @@ class LightningModel(pl.LightningModule):
         return loss
 
     def validation_step(self, batch: Any, batch_idx: int) -> Dict[str, Any]:
-        # Forward pass
         outputs = self.ppl(batch, return_attn=True)
         loss = outputs.loss
         attn_scores = outputs.get('attn_scores', None)
@@ -53,7 +52,7 @@ class LightningModel(pl.LightningModule):
 
     def log_attention_maps(self, batch: Any, batch_idx: int, attn_scores: Optional[torch.Tensor]) -> None:
         """Log attention maps overlaid on input images to WandB."""
-        # --- Log first N images and attention maps to WandB ---
+        # Log first N images and attention maps to WandB
         N = 8  # number of images to log
         if attn_scores is not None and batch_idx == 0:  # only first batch
             images = batch["image"]  # shape [B, C, H, W]
