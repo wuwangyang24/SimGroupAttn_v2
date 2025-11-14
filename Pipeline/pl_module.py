@@ -8,7 +8,7 @@ from typing import Any, Optional, Sequence, Dict
 
 class LightningModel(pl.LightningModule):
 
-    def __init__(self, ppl: Optional[Sequence[Any]], config: Any) -> None:
+    def __init__(self, ppl: Any, config: Any) -> None:
         super().__init__()
         self.save_hyperparameters(ignore=['ppl'])
         self.ppl = ppl
@@ -24,7 +24,7 @@ class LightningModel(pl.LightningModule):
         self.start_factor = optimizer_config.start_factor
         
     def training_step(self, batch: Any, batch_idx: int) -> Any:
-        loss = self.ppl.forward(batch).loss
+        loss = self.ppl(batch).loss
         self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         # Read current LR from trainer's optimizer (cheap) and log as scalar
         try:
@@ -37,7 +37,7 @@ class LightningModel(pl.LightningModule):
 
     def validation_step(self, batch: Any, batch_idx: int) -> Dict[str, Any]:
         # Forward pass
-        outputs = self.ppl.forward(batch, return_attn=True)
+        outputs = self.ppl(batch, return_attn=True)
         loss = outputs.loss
         attn_scores = outputs.get('attn_scores', None)
         self.log(
@@ -48,6 +48,11 @@ class LightningModel(pl.LightningModule):
             logger=True,
             sync_dist=True,
         )
+        self.log_attention_maps(batch, batch_idx, attn_scores, loss)
+        return {"val_loss": loss}
+
+    def log_attention_maps(self, batch: Any, batch_idx: int, attn_scores: Optional[torch.Tensor]) -> None:
+        """Log attention maps overlaid on input images to WandB."""
         # --- Log first N images and attention maps to WandB ---
         N = 8  # number of images to log
         if attn_scores is not None and batch_idx == 0:  # only first batch
@@ -85,7 +90,6 @@ class LightningModel(pl.LightningModule):
                     f"val_attention_overlay_{i}": wandb.Image((overlay * 255).astype("uint8")),
                     "epoch": self.current_epoch
                 })
-        return {"val_loss": loss}
 
     def configure_optimizers(self) -> Dict[str, Any]:
         optimizer = torch.optim.AdamW(
