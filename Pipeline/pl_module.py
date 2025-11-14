@@ -87,7 +87,6 @@ class LightningModel(pl.LightningModule):
                 })
         return {"val_loss": loss}
 
-
     def configure_optimizers(self) -> Dict[str, Any]:
         optimizer = torch.optim.AdamW(
             self.ppl.parameters(),
