@@ -4,12 +4,10 @@ from Memory.memory_bank import MemoryBank
 import torch
 
 
-class MemoryJepaEncoder:
-    """ Memory JEPA Encoder combining MemoryEncoder and SignalEncoder."""
-    def __init__(
-        self,
-        cfg: dict,
-    ):
+class MemoryJepa(torch.nn.Module):
+    """ MemoryJEPA model combining MemoryEncoder and SignalEncoder."""
+    def __init__(self, cfg: dict):
+        super().__init__()
         signal_encoder_cfg = cfg.get("signal_encoder", {})
         memory_encoder_cfg = cfg.get("memory_encoder", {})
         memory_bank_cfg = cfg.get("memory_bank", {})
@@ -24,6 +22,7 @@ class MemoryJepaEncoder:
         self.loss_fn = self._loss_fn(cfg.get("loss_type", "cosine"))
 
     def _loss_fn(self, loss_type: str) -> any:
+        """ Returns loss function based on loss_type."""
         if loss_type == 'cosine':
             cos = torch.nn.CosineSimilarity(dim=-1)
             return lambda x, y: (1 - cos(x, y)).mean()

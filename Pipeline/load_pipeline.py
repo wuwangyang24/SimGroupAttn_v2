@@ -112,23 +112,6 @@ def load_ppl(ppl_config: Any) -> Any:
         cfg = ConfigClass(**params)
         model = ModelClass(cfg)
     else:
-        from Model.Encoder.memory_encoder import MemoryJepaEncoder
-        model = MemoryJepaEncoder(
-            img_size=ppl_config.img_size,
-            patch_size=ppl_config.patch_size,
-            in_chans=ppl_config.in_chans,
-            embed_dim=ppl_config.embed_dim,
-            depth=ppl_config.layers,
-            num_heads=ppl_config.heads,
-            mlp_ratio=getattr(ppl_config, "mlp_ratio", 4.0),
-            qkv_bias=getattr(ppl_config, "qkv_bias", True),
-            qk_scale=getattr(ppl_config, "qk_scale", None),
-            drop_rate=getattr(ppl_config, "drop_rate", 0.0),
-            attn_drop_rate=getattr(ppl_config, "attn_drop_rate", 0.0),
-            drop_path_rate=getattr(ppl_config, "drop_path_rate", 0.0),
-            norm_layer=None,
-            init_std=getattr(ppl_config, "init_std", 0.02),
-            cls_token=getattr(ppl_config, "cls_token", True),
-            return_attention=getattr(ppl_config, "return_attention", True)
-        )
+        from Model.memojepa import MemoryJepa
+        model = MemoryJepa(cfg)
     return model
