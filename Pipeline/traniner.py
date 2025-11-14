@@ -16,8 +16,8 @@ class Trainer:
         self.config = config
         self.name = self._generate_experiment_name(config)
         self.wandb_logger = self._init_wandb_logger()
-        self.ppl = load_ppl(config.Pipeline)
-        self.pl_module = LightningModel(self.ppl, config.Training)
+        self.ppl = load_ppl(config)
+        self.pl_module = LightningModel(self.ppl, config)
         self.wandb_logger.watch(self.ppl, log="gradients", log_freq=1000)
         self.resume_checkpoint = self._find_latest_checkpoint(self._checkpoint_dir)
         self.pl_trainer = self._init_pl_trainer()
@@ -25,14 +25,14 @@ class Trainer:
     @property
     def _checkpoint_dir(self) -> str:
         """Construct checkpoint directory path."""
-        return os.path.join(self.config.Logging.checkpoint_path, self.name)
+        return os.path.join(self.config.checkpoint.save_dir, self.name)
 
     def _init_wandb_logger(self) -> WandbLogger:
         """Initialize Weights & Biases logger."""
         return WandbLogger(
             log_model=True,
-            entity=self.config.Logging.entity,
-            project=self.config.Logging.project,
+            entity=self.config.logging.entity,
+            project=self.config.logging.project,
             name=self.name,
             resume='allow'
         )
@@ -40,8 +40,7 @@ class Trainer:
     def _generate_experiment_name(self, cfg: DictConfig) -> str:
         """Generate a structured experiment name from configuration."""
         parts = [
-            f"{cfg.Pipeline.name}",
-            f"{cfg.Pipeline.backbone}",
+            f"{cfg.project}"
         ]
         return "-".join(parts)
 
@@ -68,15 +67,15 @@ class Trainer:
         checkpoint_callback = pl.pytorch.callbacks.ModelCheckpoint(
             dirpath=self._checkpoint_dir,
             filename='checkpoint_{epoch}',
-            every_n_epochs=self.config.Logging.save_every_n_epoch,
+            every_n_epochs=self.config.logging.save_every_epochs,
             save_top_k=1,
         )
 
         return pl.Trainer(
             accelerator="cpu",
-            max_epochs=self.config.Training.epochs,
+            max_epochs=self.config.training.max_epochs,
             gradient_clip_val=1.0,
-            check_val_every_n_epoch=self.config.Training.val_every_n_epoch,
+            check_val_every_n_epoch=self.config.training.val_every_epochs,
             logger=self.wandb_logger,
             log_every_n_steps=1,
             precision="16-mixed",

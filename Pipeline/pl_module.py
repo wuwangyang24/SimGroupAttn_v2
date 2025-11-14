@@ -13,7 +13,7 @@ class LightningModel(pl.LightningModule):
         # Extract optimizer configuration
         optimizer_config = train_config.optimizer
         self.max_epochs = train_config.epochs
-        self.lr = optimizer_config.lr
+        self.lr = optimizer_config.learning_rate
         self.beta1 = optimizer_config.beta1
         self.beta2 = optimizer_config.beta2
         self.weight_decay = optimizer_config.weight_decay

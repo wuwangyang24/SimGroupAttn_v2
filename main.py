@@ -14,7 +14,7 @@ def load_config(config_path: str) -> dict:
 def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Training script for memojepa')
-    parser.add_argument('--config', type=str, default='config.yaml', help='Path to the configuration file')
+    parser.add_argument('--config', type=str, default='Configs/config_memojepa.yaml', help='Path to the configuration file')
     args = parser.parse_args()
 
     # Load configuration
