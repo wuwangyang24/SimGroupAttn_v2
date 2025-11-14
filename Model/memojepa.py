@@ -25,7 +25,8 @@ class MemoryJepaEncoder:
 
     def _loss_fn(self, loss_type: str) -> any:
         if loss_type == 'cosine':
-            return torch.nn.CosineSimilarity(dim=-1)
+            cos = torch.nn.CosineSimilarity(dim=-1)
+            return lambda x, y: (1 - cos(x, y)).mean()
         elif loss_type == 'mse':
             return torch.nn.MSELoss()
         elif loss_type == 'ce':
@@ -55,7 +56,7 @@ class MemoryJepaEncoder:
         memory_embeddings = self.memory_encoder(non_context_embeddings, self.memory_bank, num_neighbors, remain_signal_ratio)  # [B, M*k, D] or [B, M*k+1, D]
         # calculate loss
         cls_memory = memory_embeddings[:, 0]  # [B, D]
-        loss = 1 - self.loss_fn(cls_signal, cls_memory).mean()
+        loss = self.loss_fn(cls_signal, cls_memory)
         if return_all:
             return {'embeddings': memory_embeddings, 'loss': loss}
         return {'cls_embeddings': cls_memory, 'loss': loss}
