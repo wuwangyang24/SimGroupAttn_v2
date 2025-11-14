@@ -67,4 +67,4 @@ class SignalEncoder(VisionTransformer):
         non_context_scores, non_context_indices = torch.topk(combined_score, k=M, largest=True, dim=-1)  # (B, M)
         # get non-context patches
         non_context_patches = torch.gather(x, dim=1, index=non_context_indices.unsqueeze(-1).expand(-1, -1, x.size(-1))) # (B, M, D)
-        return x[:, 0], non_context_scores, non_context_patches
+        return x[:, 0], non_context_scores.detach(), non_context_patches

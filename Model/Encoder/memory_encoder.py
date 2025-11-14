@@ -9,13 +9,10 @@ class MemoryEncoder(SimpleViT):
     """ memory Encoder based on SimpleViT architecture."""
     def __init__(
         self,
-        img_size: list = [224],
-        patch_size: int = 16,
-        in_chans: int = 3,
         embed_dim: int = 768,
-        depth: int = 12,
-        num_heads: int = 12,
-        mlp_ratio: float = 4.0,
+        depth: int = 2,
+        num_heads: int = 4,
+        mlp_ratio: float = 2.0,
         qkv_bias: bool = True,
         qk_scale: Optional[float] = None,
         drop_rate: float = 0.0,
@@ -27,9 +24,6 @@ class MemoryEncoder(SimpleViT):
         return_attention: bool = True
     ):
         super().__init__(
-            img_size=img_size,
-            patch_size=patch_size,
-            in_chans=in_chans,
             embed_dim=embed_dim,
             depth=depth,
             num_heads=num_heads,

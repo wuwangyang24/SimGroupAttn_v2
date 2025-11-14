@@ -12,13 +12,14 @@ class MemoryJepaEncoder:
     ):
         signal_encoder_cfg = cfg.get("signal_encoder", {})
         memory_encoder_cfg = cfg.get("memory_encoder", {})
+        memory_bank_cfg = cfg.get("memory_bank", {})
         self.signal_encoder = SignalEncoder(**signal_encoder_cfg)
         self.memory_encoder = MemoryEncoder(**memory_encoder_cfg)
         self.memory_bank = MemoryBank(
-            capacity=cfg.get("memory_capacity", 10000),
-            embed_dim=memory_encoder_cfg.get("embed_dim", 768),
-            device=cfg.get("memory_device", 'gpu'),
-            dtype=cfg.get("memory_dtype", torch.float16)
+            capacity=memory_bank_cfg.get("memory_capacity", 10000),
+            embed_dim=memory_bank_cfg.get("embed_dim", 768),
+            device=memory_bank_cfg.get("memory_device", 'gpu'),
+            dtype=memory_bank_cfg.get("memory_dtype", torch.float16)
         )
         self.loss_fn = torch.nn.CosineSimilarity(dim=-1)
 
