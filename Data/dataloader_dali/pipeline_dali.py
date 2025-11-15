@@ -65,3 +65,7 @@ class ValPipeline(Pipeline):
             std=[0.229 * 255, 0.224 * 255, 0.225 * 255],
         )
         return images, labels
+    
+class TestPipeline(Pipeline):
+    pass
+    

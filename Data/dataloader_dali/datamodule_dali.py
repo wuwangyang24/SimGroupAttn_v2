@@ -1,5 +1,6 @@
 import pytorch_lightning as pl
 from nvidia.dali.plugin.pytorch import DALIGenericIterator
+from .pipeline_dali import TrainPipeline, ValPipeline, TestPipeline
 
 
 class DALIDataModule(pl.LightningDataModule):
