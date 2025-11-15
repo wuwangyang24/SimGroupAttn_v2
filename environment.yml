@@ -1,33 +1,35 @@
-name: simgroupattn_v2
+name: memojepa
 channels:
+  - pytorch
+  - nvidia
   - conda-forge
   - defaults
+
 dependencies:
-  - python=3.10
-  - faiss
-  - pip
-  - pip:
-      # Core Deep Learning Libraries
-      - torch
-      - torchvision
-      - lightning
-      - transformers
+  - python=3.11
 
-      # Model & Training Dependencies
-      - timm
-      - einops
+  # --- Core deep learning stack (GPU enabled) ---
+  - pytorch
+  - torchvision
+  - pytorch-cuda=12.1  # Ensures correct CUDA runtime inside the env
 
-      # Configuration & Logging
-      - wandb
-      - omegaconf
+  # --- Lightning + ecosystem ---
+  - lightning
+  - pytorch-lightning
+  - transformers
+  - timm
+  - einops
 
-      # Image Processing
-      - opencv-python-headless
+  # --- Config / Logging ---
+  - wandb
+  - omegaconf
 
-      # Development Tools
-      - pytest
-      - black
-      - isort
-      - mypy
-      - pre-commit
-      - faiss-cpu
+  # --- Image processing ---
+  - opencv  # (conda-forge version includes everything)
+
+  # --- Dev tools ---
+  - pytest
+  - black
+  - isort
+  - mypy
+  - pre-commit
