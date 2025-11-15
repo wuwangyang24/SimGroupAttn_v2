@@ -2,8 +2,9 @@ from Encoder.memory_encoder import MemoryEncoder
 from Encoder.signal_encoder import SignalEncoder
 from Memory.memory_bank import MemoryBank
 import torch
+import os
 
-
+    
 class MemoryJepa(torch.nn.Module):
     """ MemoryJEPA model combining MemoryEncoder and SignalEncoder."""
     def __init__(self, cfg: dict):
@@ -14,9 +15,9 @@ class MemoryJepa(torch.nn.Module):
         self.signal_encoder = SignalEncoder(**signal_encoder_cfg)
         self.memory_encoder = MemoryEncoder(**memory_encoder_cfg)
         self.memory_bank = MemoryBank(
-            capacity=memory_bank_cfg.get("memory_capacity", 10000),
+            capacity=memory_bank_cfg.get("memory_capacity", 100000),
             embed_dim=memory_bank_cfg.get("embed_dim", 768),
-            device=memory_bank_cfg.get("memory_device", 'gpu')
+            device=f"cuda:{int(os.environ.get('LOCAL_RANK', 0))}"
         )
         self.loss_fn = self._loss_fn(cfg.get("loss_type", "cosine"))
 
@@ -55,11 +56,15 @@ class MemoryJepa(torch.nn.Module):
             cls_signal, non_context_scores, non_context_embeddings = self.signal_encoder.SeperateContext(x)  # [B, 1, D],  [B, M, D]
             attn_scores = None
         # update memory bank
-        self.memory_bank.memorize(non_context_embeddings, non_context_scores, mode=memory_mode)
+        B, M, D = non_context_embeddings.shape
+        self.memory_bank.memorize(non_context_embeddings.view(B*M, D), non_context_scores.view(-1), mode=memory_mode)
         # Encode with memory encoder
         memory_embeddings = self.memory_encoder(non_context_embeddings, self.memory_bank, num_neighbors, remain_signal_ratio)  # [B, M*k, D] or [B, M*k+1, D]
         # calculate loss
-        cls_memory = memory_embeddings[:, 0]  # [B, D]
+        if isinstance(memory_embeddings, tuple):
+            cls_memory = memory_embeddings[0][:, 0]  # [B, D]
+        else:
+            cls_memory = memory_embeddings[:, 0]  # [B, D]
         loss = self.loss_fn(cls_signal, cls_memory)
         if return_memoembed:
             return {'embeddings': memory_embeddings, 'loss': loss, 'attn_scores': attn_scores}
