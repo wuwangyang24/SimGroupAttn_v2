@@ -45,6 +45,7 @@ class ValPipeline(Pipeline):
         self.reader = fn.readers.file(
             file_list=file_list,
             random_shuffle=False,
+            shuffle_after_epoch=False,
             shard_id=shard_id,
             num_shards=num_shards,
             name="Reader",
@@ -52,9 +53,7 @@ class ValPipeline(Pipeline):
 
     def define_graph(self):
         images, labels = self.reader
-
         images = fn.decoders.image(images, device="mixed", output_type=types.RGB)
-
         images = fn.resize(images, resize_x=256, resize_y=256)
         images = fn.crop_mirror_normalize(
             images,

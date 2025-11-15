@@ -1,3 +1,7 @@
+data:
+  train: 'Data/train.txt'
+  val: 'Data/val.txt'
+
 signal_encoder:
   img_size: [224]
   patch_size: 16
@@ -42,9 +46,10 @@ hyperparameters:
 
 training:
   loss_type: "cosine"
-  batch_size: 256
-  max_epochs: 300
-  val_every_epochs: 5
+  batch_size: 32
+  max_epochs: 10
+  val_every_epochs: 1
+  accumulate_grad_batches: 4
 
 optimizer:
   optim: "adamw"
@@ -64,8 +69,9 @@ checkpoint:
 logging:    
   project: 'memojepa'
   entity: 'wwy'
-  log_every_epochs: 50
+  log_every_epochs: 1
   logger: 'wandb'
 
+name: 'memojepa'
 device: "cuda"
 seed: 42

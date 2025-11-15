@@ -2,8 +2,8 @@ import os
 import argparse
 from omegaconf import OmegaConf
 import wandb
-from Pipeline.traniner import Trainer
-from Data.dataloader import ImageDataModule
+from Pipeline.trainer import Trainer
+from Data.dataloader_dali.datamodule_dali import DALIDataModule
 
 def load_config(config_path: str) -> dict:
     if not os.path.exists(config_path):
@@ -26,13 +26,18 @@ def main():
     wandb.login(key=wandb_key)
 
     # Initialize DataModule
-    data_module = ImageDataModule(config['Data'])
+    print('Creating dataloader...')
+    data_module = DALIDataModule(train_list=config['data']['train'],
+                                 val_list=config['data']['val'],
+                                 batch_size=config['training']['batch_size'])
 
     # Initialize Trainer
+    print('Initilizing trainer...')
     trainer = Trainer(config)
 
     # Start training
-    trainer.train(data_module)
+    print('Training ...')
+    trainer.train(data_module=data_module)
 
 if __name__ == '__main__':
     main()

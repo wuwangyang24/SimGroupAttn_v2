@@ -1,6 +1,6 @@
-from Encoder.memory_encoder import MemoryEncoder
-from Encoder.signal_encoder import SignalEncoder
-from Memory.memory_bank import MemoryBank
+from .Encoder.memory_encoder import MemoryEncoder
+from .Encoder.signal_encoder import SignalEncoder
+from .Memory.memory_bank import MemoryBank
 import torch
 import os
 

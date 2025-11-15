@@ -4,6 +4,7 @@ from typing import Optional
 import warnings
 import lightning as pl
 from lightning.pytorch.loggers import WandbLogger
+from lightning.pytorch.profilers import AdvancedProfiler
 from omegaconf import DictConfig
 from Pipeline.pl_module import LightningModel
 from Pipeline.load_pipeline import load_ppl
@@ -40,7 +41,7 @@ class Trainer:
     def _generate_experiment_name(self, cfg: DictConfig) -> str:
         """Generate a structured experiment name from configuration."""
         parts = [
-            f"{cfg.project}"
+            f"{cfg.logging.project}"
         ]
         return "-".join(parts)
 
@@ -67,14 +68,16 @@ class Trainer:
         checkpoint_callback = pl.pytorch.callbacks.ModelCheckpoint(
             dirpath=self._checkpoint_dir,
             filename='checkpoint_{epoch}',
-            every_n_epochs=self.config.logging.save_every_epochs,
+            every_n_epochs=self.config.checkpoint.save_every_epochs,
             save_top_k=1,
         )
+        profiler = AdvancedProfiler(filename="advanced_profiler.txt")
 
         return pl.Trainer(
-            accelerator="cpu",
+            accelerator="gpu",
             max_epochs=self.config.training.max_epochs,
             gradient_clip_val=1.0,
+            accumulate_grad_batches=self.config.training.accumulate_grad_batches,
             check_val_every_n_epoch=self.config.training.val_every_epochs,
             logger=self.wandb_logger,
             log_every_n_steps=1,
@@ -87,7 +90,7 @@ class Trainer:
             ],
             enable_model_summary=True,
             # deterministic=True,
-            profiler="simple",
+            profiler=profiler,
         )
 
     def train(self, data_module: pl.LightningDataModule) -> None:
