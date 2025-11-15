@@ -15,21 +15,11 @@ dependencies:
 
   # --- Lightning + ecosystem ---
   - lightning
-  - pytorch-lightning
   - transformers
-  - timm
-  - einops
 
   # --- Config / Logging ---
   - wandb
   - omegaconf
 
   # --- Image processing ---
-  - opencv  # (conda-forge version includes everything)
-
-  # --- Dev tools ---
-  - pytest
-  - black
-  - isort
-  - mypy
-  - pre-commit
+  - matplotlib
