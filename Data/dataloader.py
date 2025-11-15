@@ -5,7 +5,7 @@ import lightning as pl
 from typing import Tuple, List, Dict, Any, Optional
 from torch.utils.data import Dataset, DataLoader
 import torchvision.transforms.functional as TF
-from dataset import ImageFolderDataset
+from .dataset import ImageFolderDataset
 
 
 def _hash_split(path: str, val_ratio: float) -> bool:
