@@ -46,14 +46,17 @@ class MemoryJepa(torch.nn.Module):
             num_neighbors: number of nearest neighbors to retrieve.
             remain_signal_ratio: float, ratio of original signal to retain.
         Returns:
+            embeddings: output embeddings from memory encoder.
             loss: float, loss between cls_signal and cls_memory.
-            cls_memory: cls embedding of shape [B, 1, D].
+            attn_scores: attention scores from signal encoder
         """
         if return_attn:
             x, combined_scores, attn_scores = self.signal_encoder(x, return_attn=return_attn)  # [B, N, D],  [B, N], [B, H, N, N]
         else:
             x, combined_scores = self.signal_encoder(x)  # [B, N, D],  [B, N]
             attn_scores = None
+        # normalize combined scores
+        combined_scores = combined_scores / (combined_scores.sum(dim=1, keepdim=True) + 1e-6)
         if self.signal_encoder.cls_token:
             cls_signal, x = x[:,0], x[:,1:]
         # update memory bank

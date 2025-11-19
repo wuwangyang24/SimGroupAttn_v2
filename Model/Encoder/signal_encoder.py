@@ -63,5 +63,5 @@ class SignalEncoder(VisionTransformer):
         # Combined score
         combined_score = regeneration * Broadcasting  # (B, N)
         if return_attn:
-            return x, combined_score, attn_scores
-        return x, combined_score
+            return x, combined_score.detach(), attn_scores
+        return x, combined_score.detach()
