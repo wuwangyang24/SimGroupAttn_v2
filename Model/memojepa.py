@@ -27,7 +27,7 @@ class MemoryJepa(torch.nn.Module):
             cos = torch.nn.CosineSimilarity(dim=-1)
             return lambda x, y: (1 - cos(x, y)).mean()
         elif loss_type == 'mse':
-            return torch.nn.MSELoss()
+            return torch.nn.MSELoss(reduction=None)
         elif loss_type == 'ce':
             return torch.nn.CrossEntropyLoss()
         else:
@@ -37,8 +37,7 @@ class MemoryJepa(torch.nn.Module):
                 x: any, 
                 num_neighbors: int=5, 
                 remain_signal_ratio: float=0.1, 
-                memory_mode: str='random', 
-                return_memoembed: bool = False,
+                memory_mode: str='random',
                 return_attn: bool = False
                 ) -> dict:
         """
@@ -51,21 +50,19 @@ class MemoryJepa(torch.nn.Module):
             cls_memory: cls embedding of shape [B, 1, D].
         """
         if return_attn:
-            cls_signal, non_context_scores, non_context_embeddings, attn_scores = self.signal_encoder.SeperateContext(x, return_attn=return_attn)  # [B, 1, D],  [B, M, D], [B, H, N, N]
+            x, combined_scores, attn_scores = self.signal_encoder(x, return_attn=return_attn)  # [B, N, D],  [B, N], [B, H, N, N]
         else:
-            cls_signal, non_context_scores, non_context_embeddings = self.signal_encoder.SeperateContext(x)  # [B, 1, D],  [B, M, D]
+            x, combined_scores = self.signal_encoder(x)  # [B, N, D],  [B, N]
             attn_scores = None
+        if self.signal_encoder.cls_token:
+            cls_signal, x = x[:,0], x[:,1:]
         # update memory bank
-        B, M, D = non_context_embeddings.shape
-        self.memory_bank.memorize(non_context_embeddings.view(B*M, D), non_context_scores.view(-1), mode=memory_mode)
+        B, N, D = x.shape
+        self.memory_bank.memorize(x.view(B*N, D), combined_scores.view(-1), mode=memory_mode)
         # Encode with memory encoder
-        memory_embeddings = self.memory_encoder(non_context_embeddings, self.memory_bank, num_neighbors, remain_signal_ratio)  # [B, M*k, D] or [B, M*k+1, D]
+        memory_embeddings = self.memory_encoder(x, self.memory_bank, num_neighbors, remain_signal_ratio)  # [B, M, D]
+        if self.memory_encoder.cls_token:
+            cls_memory, memory_embeddings = memory_embeddings[:,0], memory_embeddings[:,1:]
         # calculate loss
-        if isinstance(memory_embeddings, tuple):
-            cls_memory = memory_embeddings[0][:, 0]  # [B, D]
-        else:
-            cls_memory = memory_embeddings[:, 0]  # [B, D]
-        loss = self.loss_fn(cls_signal, cls_memory)
-        if return_memoembed:
-            return {'embeddings': memory_embeddings, 'loss': loss, 'attn_scores': attn_scores}
-        return {'cls_embeddings': cls_memory, 'loss': loss, 'attn_scores': attn_scores}
+        loss = (self.loss_fn(x, memory_embeddings).mean(dim=-1) * combined_scores).mean()
+        return {'embeddings': memory_embeddings, 'loss': loss, 'attn_scores': attn_scores}

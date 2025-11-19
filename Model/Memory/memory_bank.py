@@ -95,7 +95,7 @@ class MemoryBank:
         distances, indices = self.recollector.recollect(query.to(self.device), k)  # [B*M, k]
         indices = indices.view(B, M * k)
         neighbor_embeddings = self.memory[indices]  # [B, M*k, D]
-        return neighbor_embeddings
+        return neighbor_embeddings.view(B, M, k, D)
 
     def reset(self):
         """Reset memory bank (preallocate contiguous memory)."""

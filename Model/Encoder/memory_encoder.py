@@ -49,11 +49,20 @@ class MemoryEncoder(VisionTransformer):
             k: number of nearest neighbors to retrieve.
             remain_signal_ratio: float, ratio of original signal to retain.
         Returns:
-            Tensor of shape [B, M*k, D] or [B, M*k+1, D].
+            Tensor of shape [B, M, D]
         """
         if k > 0:
-            _, memory_embeddings = memorybank.recollect(x, k)  # indices: [B, M*k, D]
-            x = x.repeat_interleave(k, dim=1)  # [B, M*k, D]
-            x = memory_embeddings * (1 - remain_signal_ratio) + x * remain_signal_ratio  # [B, M*k, D]
-        x = super().forward(x)  # [B, M*k, D] or [B, M*k+1, D]
+            _, memory_embeddings = memorybank.recollect(x, k)  # indices: [B, M, k, D]
+            x = memory_embeddings * (1 - remain_signal_ratio) + x.unsqueeze(2) * remain_signal_ratio  # [B, M, k, D]
+            B, M, _, D = x.shape
+            if self.cls_token:
+                x = super().forward(x.view(B*M, k, D))  # [B*M, k+1, D]
+                x = x.reshape(B, M, k+1, D)
+                x = x[:, :, 0]
+            else:
+                x = super().forward(x.view(B*M, k, D))  # [B*M, k, D]
+                x = x.reshape(B, M, k, D)
+                x = x.mean(dim=2)
+        else:
+            return x # no memory to encode, thus return original input
         return x
