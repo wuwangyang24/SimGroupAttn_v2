@@ -113,5 +113,5 @@ def load_ppl(ppl_config: Any) -> Any:
         model = ModelClass(cfg)
     else:
         from Model.memojepa import MemoryJepa
-        model = MemoryJepa(cfg)
+        model = MemoryJepa(ppl_config)
     return model

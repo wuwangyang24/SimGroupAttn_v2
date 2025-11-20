@@ -4,7 +4,7 @@ data:
 
 signal_encoder:
   img_size: [224]
-  patch_size: 16
+  patch_size: 32
   in_chans: 3
   embed_dim: 768
   depth: 12
@@ -16,8 +16,8 @@ signal_encoder:
   attn_drop_rate: 0.0
   drop_path_rate: 0.0
   init_std: 0.02
-  cls_token: true
-  return_attention: true
+  cls_token: True
+  return_attention: True
 
 memory_encoder:
   embed_dim: 768
@@ -30,8 +30,8 @@ memory_encoder:
   attn_drop_rate: 0.0
   drop_path_rate: 0.0
   init_std: 0.02
-  cls_token: true
-  return_attention: true
+  cls_token: False
+  return_attention: False
 
 memory_bank:
   memory_capacity: 10000

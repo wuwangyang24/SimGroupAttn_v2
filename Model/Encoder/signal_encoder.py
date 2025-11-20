@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from typing import Optional
-from Backbone.SimpleViT.simpleViT import VisionTransformer
+from ..Backbone.SimpleViT.simpleViT import VisionTransformer
 
 
 class SignalEncoder(VisionTransformer):
@@ -54,7 +54,7 @@ class SignalEncoder(VisionTransformer):
             non_context_scores: Tensor of shape [B, M], attention scores for non-context patches.
             non_context_patches: Tensor of shape [B, M, D], non-context patch embeddings.
         """
-        x, attn_scores = self.forward(x)
+        x, attn_scores = super().forward(x)
         N = attn_scores.shape[-1]
         # Regeneration difficulty
         regeneration = attn_scores.diagonal(dim1=-2, dim2=-1).mean(dim=1) # (B, N)

@@ -1,10 +1,16 @@
 import torch
 import wandb
 import numpy as np
+import pandas as pd
+import seaborn as sns
 import lightning as pl
 import matplotlib.pyplot as plt
-from torch.optim.lr_scheduler import SequentialLR, LinearLR, CosineAnnealingLR
 from typing import Any, Optional, Dict
+import umap.umap_ as umap
+from sklearn.manifold import TSNE
+from sklearn.decomposition import PCA
+from sklearn.cluster import DBSCAN
+from torch.optim.lr_scheduler import SequentialLR, LinearLR, CosineAnnealingLR
 
 
 class LightningModel(pl.LightningModule):
@@ -49,6 +55,10 @@ class LightningModel(pl.LightningModule):
             self.log_attention_maps(batch, attn_scores)
         return {"val_loss": loss}
 
+    def on_validation_epoch_end(self):
+        if self.ppl.memory_bank.stored_size > 0:
+            self.visualize_cluster(self.ppl.memory_bank.memory)
+
     def log_attention_maps(self, batch: torch.Tensor, attn_scores: Optional[torch.Tensor]) -> None:
         """Log attention maps overlaid on input images to WandB."""
         # Log first N images and attention maps to WandB
@@ -81,14 +91,68 @@ class LightningModel(pl.LightningModule):
                 img_np = (img_np - img_np.min()) / (img_np.max() - img_np.min())  # normalize 0-1
                 attn_np = attn.squeeze(0).numpy()  # [H, W]
                 # Overlay attention on image
-                overlay = 0.6 * img_np + 0.4 * plt.cm.jet(attn_np)[..., :3]
+                overlay = 0.5 * img_np + 0.5 * plt.cm.jet(attn_np)[..., :3]
                 overlay = overlay.clip(0, 1)
-                side_by_side = np.concatenate([img_np, overlay], axis=1)
+                side_by_side = np.concatenate([img_np, overlay, plt.cm.jet(attn_np)[..., :3]], axis=1)
                 # Log single combined image
                 self.logger.experiment.log({
                     f"val_image_and_attention_{i}": wandb.Image((side_by_side * 255).astype("uint8")),
                     "epoch": self.current_epoch,
                 })
+
+    def visualize_cluster(self, memory_embeddings):
+        """
+        memory_embeddings: numpy array or torch.Tensor of shape (B, D)
+        Logs UMAP→tSNE 2D cluster scatterplot to W&B.
+        """
+        memory_embeddings = memory_embeddings.detach().cpu().numpy()
+        n = memory_embeddings.shape[0]
+        idx = np.random.choice(n, 5000, replace=False)
+        memory_embeddings = memory_embeddings[idx]
+        umap_reducer = umap.UMAP(
+            n_components=20,
+            n_neighbors=30,
+            min_dist=0.0,
+            metric="cosine",
+            random_state=42
+        )
+        x_umap = umap_reducer.fit_transform(memory_embeddings)
+        tsne = TSNE(
+            n_components=2,
+            perplexity=30,
+            learning_rate="auto",
+            init="pca",
+            random_state=42
+        )
+        x_2d = tsne.fit_transform(x_umap)
+        db = DBSCAN(eps=0.5, min_samples=10).fit(x_2d)
+        labels = db.labels_
+        n_clusters = len(set(labels)) - (1 if -1 in labels else 0)
+        df = pd.DataFrame({
+            "x": x_2d[:, 0],
+            "y": x_2d[:, 1],
+            "cluster": labels.astype(str)
+        })
+        df["cluster"] = df["cluster"].replace({"-1": "noise"})
+        plt.figure(figsize=(7, 6))
+        sns.scatterplot(
+            data=df,
+            x="x",
+            y="y",
+            hue="cluster",
+            s=10,
+            linewidth=0,
+            legend=False   # 👈 TURN OFF LABEL LEGEND
+        )
+        plt.title(f"t-SNE Cluster Visualization — {n_clusters} clusters")
+        plt.tight_layout()
+        self.logger.experiment.log({
+            "cluster_visualization": wandb.Image(plt),
+            "epoch": self.current_epoch,
+            "num_clusters": n_clusters
+        })
+        plt.close()
+
 
     def configure_optimizers(self) -> Dict[str, Any]:
         # ---- compute steps ----

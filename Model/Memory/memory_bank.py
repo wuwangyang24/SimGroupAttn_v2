@@ -87,7 +87,7 @@ class MemoryBank:
             neighbor_embeddings: Tensor of shape [B, M*k, D]
         """
         B, M, D = query.size()
-        query = query.view(B * M, D)
+        query = query.reshape(B * M, D)
         if self.stored_size == 0:
             raise ValueError("Memory bank is empty. Cannot perform recollection.")
         # Update FAISS index with current memory

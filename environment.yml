@@ -2,11 +2,10 @@ name: memojepa
 channels:
   - pytorch
   - nvidia
-  - conda-forge
   - defaults
 
 dependencies:
-  - python=3.11
+  - python=3.10
 
   # --- Core deep learning stack (GPU enabled) ---
   - pytorch

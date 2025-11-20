@@ -57,15 +57,17 @@ class MemoryJepa(torch.nn.Module):
             attn_scores = None
         # normalize combined scores
         combined_scores = combined_scores / (combined_scores.sum(dim=1, keepdim=True) + 1e-6)
-        if self.signal_encoder.cls_token:
+        if self.signal_encoder.cls_token is not None:
             cls_signal, x = x[:,0], x[:,1:]
+            combined_scores = combined_scores[:, 1:]
         # update memory bank
         B, N, D = x.shape
-        self.memory_bank.memorize(x.view(B*N, D), combined_scores.view(-1), mode=memory_mode)
+        self.memory_bank.memorize(x.reshape(B*N, D), combined_scores.reshape(-1), mode=memory_mode)
         # Encode with memory encoder
         memory_embeddings = self.memory_encoder(x, self.memory_bank, num_neighbors, remain_signal_ratio)  # [B, M, D]
         if self.memory_encoder.cls_token:
-            cls_memory, memory_embeddings = memory_embeddings[:,0], memory_embeddings[:,1:]
+            cls_memory, memory_embeddings = memory_embeddings[:, 0], memory_embeddings[:, 1:]
         # calculate loss
         loss = (self.loss_fn(x, memory_embeddings).mean(dim=-1) * combined_scores).mean()
+        #loss = (self.loss_fn(x, memory_embeddings).mean(dim=-1)).mean()
         return {'embeddings': memory_embeddings, 'loss': loss, 'attn_scores': attn_scores}

@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from torch import Tensor
-from Backbone.SimpleViT.simpleViT import VisionTransformer
+from ..Backbone.SimpleViT.simpleViT import VisionTransformer
 from typing import Optional
 
 
@@ -21,7 +21,7 @@ class MemoryEncoder(VisionTransformer):
         norm_layer: Optional[torch.nn.Module] = nn.LayerNorm,
         init_std: float = 0.02,
         cls_token: bool = True,
-        return_attention: bool = True
+        return_attention: bool = False
     ):
         super().__init__(
             embed_dim=embed_dim,
@@ -52,7 +52,7 @@ class MemoryEncoder(VisionTransformer):
             Tensor of shape [B, M, D]
         """
         if k > 0:
-            _, memory_embeddings = memorybank.recollect(x, k)  # indices: [B, M, k, D]
+            memory_embeddings = memorybank.recollect(x, k)  # indices: [B, M, k, D]
             x = memory_embeddings * (1 - remain_signal_ratio) + x.unsqueeze(2) * remain_signal_ratio  # [B, M, k, D]
             B, M, _, D = x.shape
             if self.cls_token:
